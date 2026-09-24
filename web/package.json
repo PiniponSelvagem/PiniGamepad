@@ -1,0 +1,22 @@
+{
+  "name": "pinigamepad-web",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "clean": "node -e \"require('fs').rmSync('node_modules', { recursive: true, force: true }); require('fs').rmSync('build', { recursive: true, force: true }); require('fs').rmSync('package-lock.json', { force: true })\"",
+    "debug": "webpack --mode development",
+    "build": "webpack --mode production",
+    "server": "node backend/pgp-server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "handlebars": "^4.7.8"
+  },
+  "devDependencies": {
+    "css-loader": "^7.1.2",
+    "html-webpack-plugin": "^5.6.4",
+    "mini-css-extract-plugin": "^2.9.4",
+    "webpack": "^5.101.3",
+    "webpack-cli": "^6.0.1"
+  }
+}

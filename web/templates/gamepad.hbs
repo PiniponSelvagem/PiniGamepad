@@ -1,0 +1,66 @@
+<section class="shell">
+    <header class="header">
+        <div>
+            <h1>PiniGamepad</h1>
+        </div>
+    </header>
+
+    <p id="status-message" class="message">{{message}}</p>
+
+    <div class="controller-controls">
+        <div class="shoulder-control">
+            <div class="trigger-control" data-analog="lt">
+                <span>LT</span>
+            </div>
+            <button data-input="lb">LB</button>
+        </div>
+        <div class="shoulder-control">
+            <div class="trigger-control" data-analog="rt">
+                <span>RT</span>
+            </div>
+            <button data-input="rb">RB</button>
+        </div>
+
+        <div class="dpad">
+            <button data-input="up">&#9650;</button>
+            <button data-input="left">&#9664;</button>
+            <button data-input="right">&#9654;</button>
+            <button data-input="down">&#9660;</button>
+        </div>
+        <div class="utility-controls">
+            <div class="utility-group">
+                <button data-input="macro">Macro</button>
+                <button data-input="select">Select</button>
+            </div>
+            <div class="utility-group">
+                <button data-input="home">Home</button>
+                <button data-input="start">Start</button>
+            </div>
+        </div>
+        <div class="actions">
+            <button class="action action-y" data-input="y">Y</button>
+            <button class="action action-b" data-input="b">B</button>
+            <button class="action action-a" data-input="a">A</button>
+            <button class="action action-x" data-input="x">X</button>
+        </div>
+        <div class="sticks-row">
+            <div class="joystick-group">
+                <div class="joystick" data-stick="left">
+                    <div class="joystick-base">
+                        <div class="joystick-knob">L</div>
+                    </div>
+                </div>
+                <button class="stick-button" data-input="l3">L3</button>
+            </div>
+            <div class="joystick-group">
+                <div class="joystick" data-stick="right">
+                    <div class="joystick-base">
+                        <div class="joystick-knob">R</div>
+                    </div>
+                </div>
+                <button class="stick-button" data-input="r3">R3</button>
+            </div>
+        </div>
+    </div>
+
+</section>
