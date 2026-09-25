@@ -1,0 +1,14 @@
+{
+    "types": ["button", "axis"],
+    "button": [
+        "LB", "RB", "UP", "RIGHT", "DOWN", "LEFT",
+        "Y", "B", "A", "X", "L3", "R3",
+        "MACRO", "SELECT", "HOME", "START"
+    ],
+    "axis": [
+        { "name": "LS", "axisCount": 2 },
+        { "name": "RS", "axisCount": 2 },
+        { "name": "LT", "axisCount": 1 },
+        { "name": "RT", "axisCount": 1 }
+    ]
+}

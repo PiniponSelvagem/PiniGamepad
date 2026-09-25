@@ -1,64 +1,58 @@
-<section class="shell">
-    <header class="header">
-        <div>
-            <h1>PiniGamepad</h1>
-        </div>
-    </header>
-
-    <p id="status-message" class="message">{{message}}</p>
+<section class="app-layout">
+    {{> nav}}
 
     <div class="controller-controls">
         <div class="shoulder-control">
-            <div class="trigger-control" data-analog="lt">
+            <div class="trigger-control" data-analog="LT">
                 <span>LT</span>
             </div>
-            <button data-input="lb">LB</button>
+            <button data-input="LB">LB</button>
         </div>
         <div class="shoulder-control">
-            <div class="trigger-control" data-analog="rt">
+            <div class="trigger-control" data-analog="RT">
                 <span>RT</span>
             </div>
-            <button data-input="rb">RB</button>
+            <button data-input="RB">RB</button>
         </div>
 
         <div class="dpad">
-            <button data-input="up">&#9650;</button>
-            <button data-input="left">&#9664;</button>
-            <button data-input="right">&#9654;</button>
-            <button data-input="down">&#9660;</button>
+            <button data-input="UP">&#9650;</button>
+            <button data-input="LEFT">&#9664;</button>
+            <button data-input="RIGHT">&#9654;</button>
+            <button data-input="DOWN">&#9660;</button>
         </div>
         <div class="utility-controls">
             <div class="utility-group">
-                <button data-input="macro">Macro</button>
-                <button data-input="select">Select</button>
+                <button data-input="MACRO">MACRO</button>
+                <button data-input="SELECT">SELECT</button>
             </div>
             <div class="utility-group">
-                <button data-input="home">Home</button>
-                <button data-input="start">Start</button>
+                <button data-input="HOME">HOME</button>
+                <button data-input="START">START</button>
             </div>
         </div>
         <div class="actions">
-            <button class="action action-y" data-input="y">Y</button>
-            <button class="action action-b" data-input="b">B</button>
-            <button class="action action-a" data-input="a">A</button>
-            <button class="action action-x" data-input="x">X</button>
+            <button class="action action-y" data-input="Y">Y</button>
+            <button class="action action-b" data-input="B">B</button>
+            <button class="action action-a" data-input="A">A</button>
+            <button class="action action-x" data-input="X">X</button>
         </div>
-        <div class="sticks-row">
+        <div class="axes-row">
             <div class="joystick-group">
-                <div class="joystick" data-stick="left">
+                <div class="joystick" data-axis="LS">
                     <div class="joystick-base">
                         <div class="joystick-knob">L</div>
                     </div>
                 </div>
-                <button class="stick-button" data-input="l3">L3</button>
+                <button class="axis-button" data-input="L3">L3</button>
             </div>
             <div class="joystick-group">
-                <div class="joystick" data-stick="right">
+                <div class="joystick" data-axis="RS">
                     <div class="joystick-base">
                         <div class="joystick-knob">R</div>
                     </div>
                 </div>
-                <button class="stick-button" data-input="r3">R3</button>
+                <button class="axis-button" data-input="R3">R3</button>
             </div>
         </div>
     </div>
