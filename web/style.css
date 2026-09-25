@@ -3,47 +3,78 @@
 }
 
 :root {
-    /* Shared theme colors */
-    --accent: #ff9f1c;
-    --background: #1c1d20;
-    --surface: #303238;
-    --surface-light: #4a4d55;
-    --text: #f2f3f5;
+    /* Theme colors */
+    --accent-0: #ff9f1c;
+    --accent-1: #383838;
+    --accent-2: #161616;
+    --accent-1-light: color-mix(in srgb, var(--accent-1) 75%, white);
+    --accent-1-dark: color-mix(in srgb, var(--accent-1) 70%, black);
+    --background: var(--accent-2);
+    --page-background: var(--background);
+    --surface: var(--accent-1);
+    --surface-light: var(--accent-1-light);
+    --text: #ffffff;
 
-    /* Navigation colors */
-    --nav-background: rgb(37 39 44 / 80%);
-    --nav-hover-background: rgb(255 255 255 / 14%);
-    --nav-menu-background: rgb(44 46 52);
-    --nav-text: #ffffff;
+    /* Navigation */
+    --nav-background-color: var(--accent-1);
+    --nav-background-tone: #000000;
+    --nav-background-tone-strength: 0%;
+    --nav-background-color-toned: color-mix(
+        in srgb,
+        var(--nav-background-color) calc(100% - var(--nav-background-tone-strength)),
+        var(--nav-background-tone) var(--nav-background-tone-strength)
+    );
+    --nav-background-alpha: 50%;
+    --nav-background: color-mix(
+        in srgb,
+        var(--nav-background-color-toned) var(--nav-background-alpha),
+        transparent
+    );
+    --nav-blur: blur(10px) saturate(100%);
+    --nav-hover-color: #ffffff;
+    --nav-hover-alpha: 8%;
+    --nav-hover-background: color-mix(
+        in srgb,
+        var(--nav-hover-color) var(--nav-hover-alpha),
+        transparent
+    );
+    --nav-menu-background: var(--nav-background-color);
+    --nav-shadow: 0 8px 22px rgba(0, 0, 0, 0.2);
+    --nav-text: var(--text);
 
-    /* Controller colors */
-    --action-a: #4d9b68;
-    --action-b: #db7065;
-    --action-x: #4e91a0;
-    --action-y: #d19b55;
-    --axis-background: #16171a;
-    --control-text: #d9dbe1;
+    /* Controller */
+    --action-a: #55fd8f;
+    --action-b: #ff5a49;
+    --action-x: #5ee2ff;
+    --action-y: #ffac40;
+    --axis-background: var(--accent-2);
+    --control-text: var(--text);
     --controller-surface: var(--surface);
     --controller-surface-light: var(--controller-surface);
 
     /* Typography */
     --font-family: system-ui, sans-serif;
 
-    /* Controller dimensions */
+    /* Dimensions */
     --control-size: 58px;
     --side-size: 190px;
     --axis-size: 100px;
     --axis-knob-size: 52px;
-
-    /* Shared dimensions */
     --spacing-small: 8px;
     --radius-small: 8px;
+    --nav-height: 57px;
+    --nav-padding: 10px;
+    --nav-mobile-padding: 10px;
+    --nav-menu-gap: 4px;
+
     color: var(--text);
     background: var(--background);
     font-family: var(--font-family);
 }
 
 body {
+    background: var(--background);
+    color: var(--text);
     margin: 0;
     min-width: 280px;
     overflow-x: hidden;
@@ -71,16 +102,17 @@ button {
     align-items: center;
     align-self: stretch;
     background: var(--nav-background);
-    backdrop-filter: blur(14px) saturate(100%);
+    backdrop-filter: var(--nav-blur);
     border-radius: var(--radius-small);
+    box-shadow: var(--nav-shadow);
     display: flex;
     gap: 16px;
     margin-bottom: 20px;
-    min-height: 57px;
+    min-height: var(--nav-height);
+    padding: var(--nav-padding);
     position: sticky;
     top: 12px;
     z-index: 10;
-    padding: 10px;
 }
 
 .nav-toggle {
@@ -90,17 +122,19 @@ button {
 .nav-brand {
     color: var(--nav-text);
     font-weight: 800;
+    font-size: 1.2rem;
+    padding-left: 12px;
 }
 
 .nav-menu {
     display: flex;
-    gap: 16px;
+    gap: 4px;
 }
 
 .nav-link {
     border-radius: 6px;
     color: var(--nav-text);
-    font-size: .85rem;
+    font-size: 1rem;
     font-weight: 600;
     padding: 8px 10px;
     text-decoration: none;
@@ -111,7 +145,7 @@ button {
 }
 
 .nav-link.active {
-    color: var(--accent);
+    color: var(--accent-0);
 }
 
 @media (max-width: 600px) {
@@ -130,6 +164,8 @@ button {
         position: fixed;
         right: 0;
         top: 0;
+        transform: translate3d(0, 0, 0);
+        will-change: transform;
     }
 
     .settings-panel {
@@ -145,7 +181,7 @@ button {
         gap: 4px;
         height: 36px;
         justify-content: center;
-        left: 10px;
+        left: var(--nav-mobile-padding);
         padding: 6px;
         pointer-events: auto;
         position: absolute;
@@ -163,16 +199,16 @@ button {
     }
 
     .nav-menu {
-        background: var(--nav-menu-background);
-        border-radius: var(--radius-small);
-        display: none;
-        flex-direction: column;
-        gap: 4px;
-        left: 0;
-        padding: 8px;
+    background: var(--nav-menu-background);
+    border-radius: var(--radius-small);
+    box-shadow: var(--nav-shadow);
+    display: none;
+    flex-direction: column;
+    gap: var(--nav-menu-gap);
+    left: var(--nav-mobile-padding);
         position: absolute;
-        right: 0;
         top: calc(100% + 8px);
+        width: fit-content;
         z-index: 2;
     }
 
@@ -214,7 +250,7 @@ button {
 }
 
 .app-button:active {
-    background: var(--accent);
+    background: var(--accent-0);
     color: var(--background);
 }
 
@@ -225,7 +261,7 @@ button {
 }
 
 h1 {
-    color: var(--accent);
+    color: var(--accent-0);
     font-size: clamp(1.7rem, 7vw, 2.5rem);
     line-height: 1;
     margin: 0;
@@ -236,6 +272,7 @@ h1 {
     display: grid;
     gap: 20px;
     grid-template-columns: repeat(3, var(--side-size));
+    font-weight: 700;
     justify-items: center;
     transform: scale(var(--controller-scale, 1));
     transform-origin: top center;
@@ -280,7 +317,7 @@ h1 {
 .trigger-control {
     background: linear-gradient(
         90deg,
-        var(--accent) 0 var(--trigger-fill, 0%),
+        var(--accent-0) 0 var(--trigger-fill, 0%),
         var(--controller-surface) var(--trigger-fill, 0%) 100%
     );
     flex-direction: column;
@@ -440,12 +477,12 @@ h1 {
 }
 
 button.input-active {
-    background: var(--accent) !important;
+    background: var(--accent-0) !important;
     color: var(--background) !important;
 }
 
 .joystick.input-active .joystick-knob {
-    background: var(--accent);
+    background: var(--accent-0);
     color: var(--background);
 }
 
