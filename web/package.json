@@ -6,7 +6,7 @@
     "clean": "node -e \"require('fs').rmSync('node_modules', { recursive: true, force: true }); require('fs').rmSync('build', { recursive: true, force: true }); require('fs').rmSync('package-lock.json', { force: true })\"",
     "debug": "webpack --mode development",
     "build": "webpack --mode production",
-    "server": "node backend/pgp-server.js"
+    "start": "node backend/pgp-server.js"
   },
   "dependencies": {
     "express": "^4.21.2",

@@ -72,14 +72,6 @@
     font-family: var(--font-family);
 }
 
-body {
-    background: var(--background);
-    color: var(--text);
-    margin: 0;
-    min-width: 280px;
-    overflow-x: hidden;
-}
-
 button {
     border: 0;
     color: inherit;
@@ -88,13 +80,36 @@ button {
     pointer-events: none;
 }
 
+.app-button {
+    align-items: center;
+    background: var(--controller-surface);
+    border-radius: var(--radius-small);
+    color: var(--control-text);
+    cursor: pointer;
+    display: flex;
+    font-size: .8rem;
+    height: 40px;
+    justify-content: center;
+    padding: 7px 10px;
+    pointer-events: auto;
+    width: 90px;
+}
+
+.app-button:hover {
+    background: var(--surface-light);
+}
+
+.app-button:active {
+    background: var(--accent-0);
+    color: var(--background);
+}
+
 .app-layout {
     align-items: center;
     display: flex;
     flex-direction: column;
-    min-height: 100vh;
-    padding-block: 12px 28px;
-    padding-inline: 12px;
+    padding-block: 10px;
+    padding-inline: 10px;
     width: 100%;
 }
 
@@ -111,7 +126,6 @@ button {
     min-height: var(--nav-height);
     padding: var(--nav-padding);
     position: sticky;
-    top: 12px;
     z-index: 10;
 }
 
@@ -124,11 +138,6 @@ button {
     font-weight: 800;
     font-size: 1.2rem;
     padding-left: 12px;
-}
-
-.nav-menu {
-    display: flex;
-    gap: 4px;
 }
 
 .nav-link {
@@ -149,7 +158,6 @@ button {
 }
 
 @media (max-width: 600px) {
-    
     .app-layout {
         padding-block: 77px 28px;
         padding-inline: 0;
@@ -235,38 +243,6 @@ button {
     padding: 10px 12px;
 }
 
-.app-button {
-    background: var(--surface);
-    border-radius: var(--radius-small);
-    color: var(--text);
-    cursor: pointer;
-    font-weight: 700;
-    padding: 10px 16px;
-    pointer-events: auto;
-}
-
-.app-button:hover {
-    background: var(--surface-light);
-}
-
-.app-button:active {
-    background: var(--accent-0);
-    color: var(--background);
-}
-
-.header {
-    align-items: start;
-    display: flex;
-    justify-content: center;
-}
-
-h1 {
-    color: var(--accent-0);
-    font-size: clamp(1.7rem, 7vw, 2.5rem);
-    line-height: 1;
-    margin: 0;
-}
-
 .controller-controls {
     align-items: center;
     display: grid;
@@ -298,20 +274,10 @@ h1 {
     grid-row: 1;
 }
 
-.shoulder-control > button,
-.trigger-control,
-.utility-controls button,
-.axis-button {
-    align-items: center;
-    background: var(--controller-surface);
-    border-radius: var(--radius-small);
-    color: var(--control-text);
-    display: flex;
-    font-size: .8rem;
-    height: 40px;
-    justify-content: center;
-    padding: 7px 10px;
-    width: 90px;
+/* controller buttons only reflect gamepad state, they are not clickable */
+.controller-controls .app-button {
+    cursor: default;
+    pointer-events: none;
 }
 
 .trigger-control {
@@ -425,11 +391,6 @@ h1 {
     gap: var(--spacing-small);
 }
 
-.utility-controls button,
-.axis-button {
-    padding: 10px 12px;
-}
-
 .axes-row {
     align-items: center;
     display: flex;
@@ -485,4 +446,3 @@ button.input-active {
     background: var(--accent-0);
     color: var(--background);
 }
-
