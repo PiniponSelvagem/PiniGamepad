@@ -10,21 +10,37 @@ const defaultHash = '#/'
 
 const app = document.querySelector('#app')
 const statusInterval = 100
+const batteryInterval = 1000
 const status = {
     inputs: []
 }
 const settingsState = {
-    message: '',
-    turbo: false,
+    controllerModel: 'xbox-series-x',
+    sleepTimeout: '30',
+    inputReportAlways: false,
+    ledColor: '#ff9f1c',
     debugMode: false
 }
 let currentRoute = routes[defaultHash]
 let statusTimer = null
+let batteryTimer = null
+let batteryState = null
 
 function applySettingsState() {
-    const input = document.querySelector('#message-input')
-    if (input) {
-        input.value = settingsState.message
+    const controllerModel = document.querySelector('[data-setting-key="controllerModel"]')
+    if (controllerModel) {
+        controllerModel.value = settingsState.controllerModel
+    }
+
+    const sleepTimeout = document.querySelector('[data-setting-key="sleepTimeout"]')
+    if (sleepTimeout) {
+        sleepTimeout.value = settingsState.sleepTimeout
+    }
+
+    const ledColor = document.querySelector('[data-setting-key="ledColor"]')
+    if (ledColor) {
+        ledColor.value = settingsState.ledColor
+        document.querySelector('.led-color-value').textContent = settingsState.ledColor.toUpperCase()
     }
 
     document.querySelectorAll('.toggle').forEach(toggle => {
@@ -44,6 +60,7 @@ function applySettingsState() {
 function render() {
     app.innerHTML = currentRoute.template({ ...status, active: { [currentRoute.page]: true } })
     attachNavigationHandlers()
+    updateBatteryIndicator(batteryState)
     if (currentRoute.page === 'gamepad') updateInputView()
     if (currentRoute.page === 'settings') {
         applySettingsState()
@@ -122,23 +139,27 @@ function updateControllerScale() {
 }
 
 function attachSettingsHandlers() {
-    const button = document.querySelector('#send-message')
-    const input = document.querySelector('#message-input')
+    const controllerModel = document.querySelector('[data-setting-key="controllerModel"]')
+    const sleepTimeout = document.querySelector('[data-setting-key="sleepTimeout"]')
+    const ledColor = document.querySelector('[data-setting-key="ledColor"]')
     const toggles = document.querySelectorAll('.toggle')
 
-    if (button && input) {
-        input.value = settingsState.message
-
-        input.addEventListener('input', () => {
-            settingsState.message = input.value
+    if (controllerModel) {
+        controllerModel.addEventListener('change', () => {
+            settingsState.controllerModel = controllerModel.value
         })
+    }
 
-        button.addEventListener('click', () => {
-            fetch('/api/message', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: input.value })
-            }).catch(() => {})
+    if (sleepTimeout) {
+        sleepTimeout.addEventListener('change', () => {
+            settingsState.sleepTimeout = sleepTimeout.value
+        })
+    }
+
+    if (ledColor) {
+        ledColor.addEventListener('input', () => {
+            settingsState.ledColor = ledColor.value
+            document.querySelector('.led-color-value').textContent = ledColor.value.toUpperCase()
         })
     }
 
@@ -171,6 +192,12 @@ function startStatusPolling() {
     statusTimer = window.setInterval(loadStatus, statusInterval)
 }
 
+function startBatteryPolling() {
+    if (batteryTimer !== null) return
+    loadBatteryStatus()
+    batteryTimer = window.setInterval(loadBatteryStatus, batteryInterval)
+}
+
 function stopStatusPolling() {
     if (statusTimer === null) return
     window.clearInterval(statusTimer)
@@ -189,8 +216,40 @@ async function loadStatus() {
     if (currentRoute.page === 'gamepad') updateInputView()
 }
 
+async function loadBatteryStatus() {
+    try {
+        const response = await fetch('/api/battery', { cache: 'no-store' })
+        if (!response.ok) throw new Error(`Battery request failed: ${response.status}`)
+        batteryState = await response.json()
+        updateBatteryIndicator(batteryState)
+    } catch (_error) {
+        batteryState = null
+        updateBatteryIndicator(batteryState)
+    }
+}
+
+function updateBatteryIndicator(battery) {
+    const indicator = document.querySelector('.nav-battery')
+    const level = indicator?.querySelector('.nav-battery-level')
+    const charging = indicator?.querySelector('.nav-battery-charging')
+    if (!indicator || !level || !charging) return
+
+    if (!battery || !Number.isFinite(battery.percentage)) {
+        level.textContent = '--%'
+        indicator.classList.remove('is-low')
+        charging.hidden = true
+        return
+    }
+
+    const percentage = Math.max(0, Math.min(100, Math.round(battery.percentage)))
+    level.textContent = `${percentage} %`
+    indicator.classList.toggle('is-low', percentage <= 20)
+    charging.hidden = battery.charging !== true
+}
+
 window.addEventListener('DOMContentLoaded', () => {
     handleRouteChange()
+    startBatteryPolling()
     updateControllerScale()
     window.addEventListener('resize', updateControllerScale)
     window.addEventListener('hashchange', handleRouteChange)

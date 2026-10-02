@@ -1,7 +1,12 @@
 const inputConstants = require('../constants/PGP_INPUTS.json')
 const [buttonType, axisType] = inputConstants.types
+const batteryInterval = 1000
 
 let currentInputs = []
+const currentBattery = {
+    percentage: 100,
+    charging: false
+}
 
 const wait = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds))
 
@@ -9,6 +14,10 @@ function status(_request, response) {
     response.json({
         inputs: currentInputs
     })
+}
+
+function batteryStatus(_request, response) {
+    response.json(currentBattery)
 }
 
 function setInputs(inputs) {
@@ -75,6 +84,27 @@ async function emulateInputs() {
     }
 }
 
-emulateInputs().catch(error => console.error('Input emulator stopped:', error))
+async function emulateBattery() {
+    while (true) {
+        await wait(batteryInterval)
 
-module.exports = { status }
+        if (currentBattery.charging) {
+            currentBattery.percentage += 1
+            if (currentBattery.percentage >= 100) {
+                currentBattery.percentage = 100
+                currentBattery.charging = false
+            }
+        } else {
+            currentBattery.percentage -= 1
+            if (currentBattery.percentage <= 0) {
+                currentBattery.percentage = 0
+                currentBattery.charging = true
+            }
+        }
+    }
+}
+
+emulateInputs().catch(error => console.error('Input emulator stopped:', error))
+emulateBattery().catch(error => console.error('Battery emulator stopped:', error))
+
+module.exports = { status, batteryStatus }

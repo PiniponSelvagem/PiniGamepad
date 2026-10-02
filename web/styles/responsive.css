@@ -14,6 +14,12 @@
         will-change: transform;
     }
 
+    .nav-battery {
+        margin-left: 0;
+        position: absolute;
+        right: var(--nav-padding);
+    }
+
     .nav-toggle {
         align-items: center;
         background: transparent;

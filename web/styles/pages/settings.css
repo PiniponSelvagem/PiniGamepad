@@ -1,4 +1,6 @@
 .settings-page {
+    --element-height: 28px;
+    --settings-row-padding-block: 12px;
     display: flex;
     flex-direction: column;
     gap: 18px;
@@ -30,7 +32,8 @@
     border: 0;
     display: flex;
     gap: var(--spacing-small);
-    padding: 12px 14px;
+    min-height: calc(var(--element-height) + var(--settings-row-padding-block) + var(--settings-row-padding-block));
+    padding: var(--settings-row-padding-block) 14px;
 }
 
 .settings-row .text-input {
@@ -38,7 +41,20 @@
     min-width: 0;
 }
 
+.settings-row .text-input,
+.settings-row .app-button {
+    padding-block: 0;
+}
+
 .settings-row-toggle {
+    justify-content: space-between;
+}
+
+.settings-row-select {
+    justify-content: space-between;
+}
+
+.settings-row-led {
     justify-content: space-between;
 }
 
@@ -47,50 +63,70 @@
     font-weight: 600;
 }
 
-.settings-panel .app-button,
+.settings-select {
+    background: var(--accent-1);
+    border: 0;
+    border-radius: var(--radius-small);
+    color: var(--text);
+    font: inherit;
+    height: var(--element-height);
+    max-width: 60%;
+    padding: 0 10px;
+}
+
+.led-color-control {
+    align-items: center;
+    display: flex;
+    gap: var(--spacing-small);
+}
+
+.led-color-input {
+    appearance: none;
+    background: transparent;
+    border: 0;
+    border-radius: 50%;
+    cursor: pointer;
+    height: 32px;
+    padding: 0;
+    width: 32px;
+}
+
+.led-color-input::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+
+.led-color-input::-webkit-color-swatch {
+    border: 0;
+    border-radius: 50%;
+}
+
+.led-color-input::-moz-color-swatch {
+    border: 0;
+    border-radius: 50%;
+}
+
+.led-color-input:focus-visible {
+    outline: 2px solid var(--text);
+    outline-offset: 2px;
+}
+
+.led-color-value {
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+    min-width: 7ch;
+}
+
 .settings-row .app-button {
     cursor: pointer;
     pointer-events: auto;
 }
 
-.settings-panel .app-button:hover,
 .settings-row .app-button:hover {
     background: var(--surface-light);
 }
 
-.settings-panel .app-button:active,
 .settings-row .app-button:active {
     background: var(--accent-0);
     color: var(--background);
 }
 
-.toggle {
-    background: rgba(255, 255, 255, 0.18);
-    border-radius: 999px;
-    cursor: pointer;
-    height: 28px;
-    padding: 0;
-    pointer-events: auto;
-    position: relative;
-    width: 48px;
-}
-
-.toggle-thumb {
-    background: #ffffff;
-    border-radius: 50%;
-    display: block;
-    height: 20px;
-    left: 4px;
-    position: absolute;
-    top: 4px;
-    transition: transform 0.2s ease;
-    width: 20px;
-}
-
-.toggle[aria-pressed="true"] {
-    background: var(--accent-0);
-}
-
-.toggle[aria-pressed="true"] .toggle-thumb {
-    transform: translateX(20px);
-}

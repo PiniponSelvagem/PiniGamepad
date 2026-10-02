@@ -200,7 +200,6 @@
     background: var(--controller-surface-light);
     border-radius: 50%;
     display: flex;
-    font-size: .75rem;
     font-weight: var(--control-font-weight);
     height: var(--axis-knob-size);
     justify-content: center;

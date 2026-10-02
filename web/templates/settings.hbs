@@ -3,21 +3,46 @@
 
     <div class="settings-page">
         <section class="settings-group">
-            <h2 class="settings-section-label">Miscellaneous</h2>
-            <div class="settings-row">
-                <input type="text" id="message-input" class="text-input" placeholder="Type a message">
-                <button id="send-message" class="app-button" type="button">Send</button>
+            <h2 class="settings-section-label">Controller</h2>
+            <div class="settings-row settings-row-select">
+                <span class="settings-label">Model emulation</span>
+                <select class="settings-select" data-setting-key="controllerModel">
+                    <option value="xbox-series-x">Xbox Series X</option>
+                    <option value="xbox-one">Xbox One</option>
+                </select>
             </div>
         </section>
 
         <section class="settings-group">
-            <h2 class="settings-section-label">Board</h2>
+            <h2 class="settings-section-label">System</h2>
+            <div class="settings-row settings-row-select">
+                <span class="settings-label">Sleep timeout</span>
+                <select class="settings-select" data-setting-key="sleepTimeout">
+                    <option value="15">15s</option>
+                    <option value="30">30s</option>
+                    <option value="60">1min</option>
+                    <option value="120">2min</option>
+                    <option value="300">5min</option>
+                    <option value="600">10min</option>
+                </select>
+            </div>
             <div class="settings-row settings-row-toggle">
-                <span class="settings-label">Turbo</span>
-                <button class="toggle" type="button" aria-pressed="false" data-setting-key="turbo">
+                <span class="settings-label">Always send input state</span>
+                <button class="toggle" type="button" aria-pressed="false" data-setting-key="inputReportAlways">
                     <span class="toggle-thumb"></span>
                 </button>
             </div>
+            <div class="settings-row settings-row-led">
+                <label class="settings-label" for="led-color">LED color</label>
+                <div class="led-color-control">
+                    <span class="led-color-value">#FF9F1C</span>
+                    <input class="led-color-input" id="led-color" type="color" value="#ff9f1c" data-setting-key="ledColor">
+                </div>
+            </div>
+        </section>
+
+        <section class="settings-group">
+            <h2 class="settings-section-label">Developer</h2>
             <div class="settings-row settings-row-toggle">
                 <span class="settings-label">Debug</span>
                 <button class="toggle debug-toggle" type="button" aria-pressed="false" data-setting-key="debugMode" data-toggle-class="debug-mode">

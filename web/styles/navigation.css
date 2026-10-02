@@ -23,7 +23,7 @@
     color: var(--nav-text);
     font-weight: 800;
     font-size: 1.2rem;
-    padding-left: 12px;
+    padding-left: var(--nav-content-inset);
 }
 
 .nav-link {
@@ -41,4 +41,23 @@
 
 .nav-link.active {
     color: var(--accent-0);
+}
+
+.nav-battery {
+    align-items: center;
+    color: var(--nav-text);
+    display: flex;
+    font-size: 1rem;
+    font-weight: 600;
+    margin-left: auto;
+    padding-right: var(--nav-content-inset);
+    white-space: nowrap;
+}
+
+.nav-battery.is-low {
+    color: #ff3b30;
+}
+
+.nav-battery-charging:not([hidden]) {
+    margin-right: 4px;
 }

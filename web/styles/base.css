@@ -43,3 +43,34 @@ button {
     background: var(--accent-0);
     color: var(--background);
 }
+
+.toggle {
+    background: rgba(255, 255, 255, 0.18);
+    border-radius: 999px;
+    cursor: pointer;
+    height: 28px;
+    padding: 0;
+    pointer-events: auto;
+    position: relative;
+    width: 48px;
+}
+
+.toggle-thumb {
+    background: #ffffff;
+    border-radius: 50%;
+    display: block;
+    height: 20px;
+    left: 4px;
+    position: absolute;
+    top: 4px;
+    transition: transform 0.2s ease;
+    width: 20px;
+}
+
+.toggle[aria-pressed="true"] {
+    background: var(--accent-0);
+}
+
+.toggle[aria-pressed="true"] .toggle-thumb {
+    transform: translateX(20px);
+}
