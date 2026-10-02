@@ -11,6 +11,7 @@
     min-height: var(--nav-height);
     padding: var(--nav-padding);
     position: sticky;
+    top: var(--nav-padding);
     z-index: 10;
 }
 
