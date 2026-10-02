@@ -14,57 +14,71 @@ const batteryInterval = 1000
 const status = {
     inputs: []
 }
-const settingsState = {
-    controllerModel: 'xbox-series-x',
-    sleepTimeout: '30',
-    inputReportAlways: false,
-    ledColor: '#ff9f1c',
-    debugMode: false
-}
+let debugMode = false
 let currentRoute = routes[defaultHash]
 let statusTimer = null
 let batteryTimer = null
 let batteryState = null
 
-function applySettingsState() {
-    const controllerModel = document.querySelector('[data-setting-key="controllerModel"]')
-    if (controllerModel) {
-        controllerModel.value = settingsState.controllerModel
+function applyDebugState() {
+    const toggle = document.querySelector('[data-setting-key="debugMode"]')
+    document.body.classList.toggle('debug-mode', debugMode)
+    if (toggle) {
+        toggle.setAttribute('aria-pressed', String(debugMode))
     }
+}
 
-    const sleepTimeout = document.querySelector('[data-setting-key="sleepTimeout"]')
-    if (sleepTimeout) {
-        sleepTimeout.value = settingsState.sleepTimeout
-    }
+async function loadSettings() {
+    const settingsPage = document.querySelector('.settings-page')
+    if (!settingsPage) return
 
-    const ledColor = document.querySelector('[data-setting-key="ledColor"]')
-    if (ledColor) {
-        ledColor.value = settingsState.ledColor
-        document.querySelector('.led-color-value').textContent = settingsState.ledColor.toUpperCase()
-    }
+    try {
+        const response = await fetch('/api/settings', { cache: 'no-store' })
+        if (!response.ok) throw new Error(`Settings request failed: ${response.status}`)
+        const settings = await response.json()
+        if (!settingsPage.isConnected) return
 
-    document.querySelectorAll('.toggle').forEach(toggle => {
-        const key = toggle.dataset.settingKey
-        if (!key) return
+        settingsPage.querySelectorAll('[data-setting-key]').forEach(control => {
+            const key = control.dataset.settingKey
+            if (key === 'debugMode' || !(key in settings)) return
 
-        const pressed = Boolean(settingsState[key])
-        toggle.setAttribute('aria-pressed', String(pressed))
+            if (control.classList.contains('toggle')) {
+                control.setAttribute('aria-pressed', String(settings[key]))
+            } else {
+                control.value = settings[key]
+            }
+        })
 
-        const cssClass = toggle.dataset.toggleClass
-        if (cssClass) {
-            document.body.classList.toggle(cssClass, pressed)
+        const colorValue = settingsPage.querySelector('.led-color-value')
+        if (colorValue && settings.ledColor) {
+            colorValue.textContent = settings.ledColor.toUpperCase()
         }
-    })
+    } catch (_error) {
+        return
+    }
+}
+
+async function saveSettings(updates) {
+    try {
+        await fetch('/api/settings', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updates)
+        })
+    } catch (_error) {
+        return
+    }
 }
 
 function render() {
     app.innerHTML = currentRoute.template({ ...status, active: { [currentRoute.page]: true } })
     attachNavigationHandlers()
+    applyDebugState()
     updateBatteryIndicator(batteryState)
     if (currentRoute.page === 'gamepad') updateInputView()
     if (currentRoute.page === 'settings') {
-        applySettingsState()
         attachSettingsHandlers()
+        loadSettings()
     }
 }
 
@@ -139,48 +153,42 @@ function updateControllerScale() {
 }
 
 function attachSettingsHandlers() {
-    const controllerModel = document.querySelector('[data-setting-key="controllerModel"]')
-    const sleepTimeout = document.querySelector('[data-setting-key="sleepTimeout"]')
     const ledColor = document.querySelector('[data-setting-key="ledColor"]')
     const toggles = document.querySelectorAll('.toggle')
 
-    if (controllerModel) {
-        controllerModel.addEventListener('change', () => {
-            settingsState.controllerModel = controllerModel.value
+    document.querySelectorAll('select[data-setting-key]').forEach(control => {
+        control.addEventListener('change', () => {
+            saveSettings({ [control.dataset.settingKey]: control.value })
         })
-    }
-
-    if (sleepTimeout) {
-        sleepTimeout.addEventListener('change', () => {
-            settingsState.sleepTimeout = sleepTimeout.value
-        })
-    }
+    })
 
     if (ledColor) {
         ledColor.addEventListener('input', () => {
-            settingsState.ledColor = ledColor.value
             document.querySelector('.led-color-value').textContent = ledColor.value.toUpperCase()
+        })
+
+        ledColor.addEventListener('change', () => {
+            saveSettings({ ledColor: ledColor.value })
         })
     }
 
     toggles.forEach(toggle => {
         const key = toggle.dataset.settingKey
-        if (key) {
-            toggle.setAttribute('aria-pressed', String(Boolean(settingsState[key])))
-        }
 
         toggle.addEventListener('click', () => {
             const pressed = toggle.getAttribute('aria-pressed') === 'true'
             const nextPressed = !pressed
             toggle.setAttribute('aria-pressed', String(nextPressed))
 
-            if (key) {
-                settingsState[key] = nextPressed
-            }
-
             const cssClass = toggle.dataset.toggleClass
             if (cssClass) {
                 document.body.classList.toggle(cssClass, nextPressed)
+            }
+
+            if (key === 'debugMode') {
+                debugMode = nextPressed
+            } else if (key) {
+                saveSettings({ [key]: nextPressed })
             }
         })
     })

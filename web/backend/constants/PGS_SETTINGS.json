@@ -1,0 +1,14 @@
+{
+    "controllerModel": [
+        "xbox-series-x",
+        "xbox-one"
+    ],
+    "sleepTimeout": [
+        "15",
+        "30",
+        "60",
+        "120",
+        "300",
+        "600"
+    ]
+}
