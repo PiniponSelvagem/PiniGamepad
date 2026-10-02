@@ -1,0 +1,101 @@
+:root {
+    --debug-rainbow-enabled: 0;
+
+    /* Theme colors */
+    --accent-0: #ff9f1c;
+    --accent-1: #383838;
+    --accent-2: #161616;
+    --accent-3: #2a2a2a;
+    --accent-1-light: color-mix(in srgb, var(--accent-1) 75%, white);
+    --accent-1-dark: color-mix(in srgb, var(--accent-1) 70%, black);
+    --background: var(--accent-2);
+    --page-background: var(--background);
+    --surface: var(--accent-1);
+    --surface-light: var(--accent-1-light);
+    --text: #ffffff;
+
+    /* Navigation */
+    --nav-background-color: var(--accent-1);
+    --nav-background-tone: #000000;
+    --nav-background-tone-strength: 0%;
+    --nav-background-color-toned: color-mix(
+        in srgb,
+        var(--nav-background-color) calc(100% - var(--nav-background-tone-strength)),
+        var(--nav-background-tone) var(--nav-background-tone-strength)
+    );
+    --nav-background-alpha: 50%;
+    --nav-background: color-mix(
+        in srgb,
+        var(--nav-background-color-toned) var(--nav-background-alpha),
+        transparent
+    );
+    --nav-blur: blur(10px) saturate(100%);
+    --nav-hover-color: #ffffff;
+    --nav-hover-alpha: 8%;
+    --nav-hover-background: color-mix(
+        in srgb,
+        var(--nav-hover-color) var(--nav-hover-alpha),
+        transparent
+    );
+    --nav-menu-background: var(--nav-background-color);
+    --nav-shadow: 0 8px 22px rgba(0, 0, 0, 0.2);
+    --nav-text: var(--text);
+
+    /* Typography */
+    --font-family: system-ui, sans-serif;
+    --app-button-font-weight: 700;
+
+    /* Dimensions */
+    --spacing-small: 8px;
+    --radius-small: 8px;
+    --element-height: 40px;
+    --nav-height: 57px;
+    --nav-padding: 10px;
+    --nav-mobile-padding: 10px;
+    --nav-menu-gap: 4px;
+
+    /* Global defaults */
+    color: var(--text);
+    background: var(--background);
+    font-family: var(--font-family);
+}
+
+html.debug-mode,
+body.debug-mode {
+    --debug-rainbow-enabled: 1;
+    background: #090b12;
+    min-height: 100vh;
+    position: relative;
+}
+
+body.debug-mode::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background:
+        linear-gradient(
+            90deg,
+            #ff0055 0 12.5%,
+            #00d9ff 12.5% 25%,
+            #ff7a00 25% 37.5%,
+            #7a5cff 37.5% 50%,
+            #ffd000 50% 62.5%,
+            #00ff95 62.5% 75%,
+            #ff3d81 75% 87.5%,
+            #00c2ff 87.5% 100%
+        );
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+}
+
+body.debug-mode > * {
+    position: relative;
+    z-index: 1;
+}
+
+html:not(.debug-mode),
+body:not(.debug-mode) {
+    --debug-rainbow-enabled: 0;
+}

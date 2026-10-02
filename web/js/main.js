@@ -13,14 +13,42 @@ const statusInterval = 100
 const status = {
     inputs: []
 }
+const settingsState = {
+    message: '',
+    turbo: false,
+    debugMode: false
+}
 let currentRoute = routes[defaultHash]
 let statusTimer = null
+
+function applySettingsState() {
+    const input = document.querySelector('#message-input')
+    if (input) {
+        input.value = settingsState.message
+    }
+
+    document.querySelectorAll('.toggle').forEach(toggle => {
+        const key = toggle.dataset.settingKey
+        if (!key) return
+
+        const pressed = Boolean(settingsState[key])
+        toggle.setAttribute('aria-pressed', String(pressed))
+
+        const cssClass = toggle.dataset.toggleClass
+        if (cssClass) {
+            document.body.classList.toggle(cssClass, pressed)
+        }
+    })
+}
 
 function render() {
     app.innerHTML = currentRoute.template({ ...status, active: { [currentRoute.page]: true } })
     attachNavigationHandlers()
     if (currentRoute.page === 'gamepad') updateInputView()
-    if (currentRoute.page === 'settings') attachSettingsHandlers()
+    if (currentRoute.page === 'settings') {
+        applySettingsState()
+        attachSettingsHandlers()
+    }
 }
 
 function attachNavigationHandlers() {
@@ -96,12 +124,44 @@ function updateControllerScale() {
 function attachSettingsHandlers() {
     const button = document.querySelector('#send-message')
     const input = document.querySelector('#message-input')
-    button.addEventListener('click', () => {
-        fetch('/api/message', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: input.value })
-        }).catch(() => {})
+    const toggles = document.querySelectorAll('.toggle')
+
+    if (button && input) {
+        input.value = settingsState.message
+
+        input.addEventListener('input', () => {
+            settingsState.message = input.value
+        })
+
+        button.addEventListener('click', () => {
+            fetch('/api/message', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: input.value })
+            }).catch(() => {})
+        })
+    }
+
+    toggles.forEach(toggle => {
+        const key = toggle.dataset.settingKey
+        if (key) {
+            toggle.setAttribute('aria-pressed', String(Boolean(settingsState[key])))
+        }
+
+        toggle.addEventListener('click', () => {
+            const pressed = toggle.getAttribute('aria-pressed') === 'true'
+            const nextPressed = !pressed
+            toggle.setAttribute('aria-pressed', String(nextPressed))
+
+            if (key) {
+                settingsState[key] = nextPressed
+            }
+
+            const cssClass = toggle.dataset.toggleClass
+            if (cssClass) {
+                document.body.classList.toggle(cssClass, nextPressed)
+            }
+        })
     })
 }
 

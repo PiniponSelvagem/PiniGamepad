@@ -1,0 +1,45 @@
+* {
+    box-sizing: border-box;
+}
+
+button {
+    border: 0;
+    color: inherit;
+    cursor: default;
+    font: inherit;
+    pointer-events: none;
+}
+
+.text-input {
+    background: var(--surface);
+    border: 0;
+    border-radius: var(--radius-small);
+    color: var(--text);
+    height: var(--element-height);
+    padding: 10px 12px;
+}
+
+.app-button {
+    align-items: center;
+    background: var(--surface);
+    border-radius: var(--radius-small);
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    font-size: .8rem;
+    font-weight: var(--app-button-font-weight);
+    height: var(--element-height);
+    justify-content: center;
+    padding: 7px 10px;
+    pointer-events: auto;
+    width: 90px;
+}
+
+.app-button:hover {
+    background: var(--surface-light);
+}
+
+.app-button:active {
+    background: var(--accent-0);
+    color: var(--background);
+}

@@ -1,0 +1,96 @@
+.settings-page {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    width: min(100%, 520px);
+}
+
+.settings-group {
+    background: var(--accent-3);
+    border-radius: var(--radius-small);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.settings-section-label {
+    background: var(--accent-1);
+    color: var(--text);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    margin: 0;
+    padding: 12px 14px 10px;
+    text-transform: none;
+}
+
+.settings-row {
+    align-items: center;
+    background: var(--accent-3);
+    border: 0;
+    display: flex;
+    gap: var(--spacing-small);
+    padding: 12px 14px;
+}
+
+.settings-row .text-input {
+    flex: 1;
+    min-width: 0;
+}
+
+.settings-row-toggle {
+    justify-content: space-between;
+}
+
+.settings-label {
+    color: var(--text);
+    font-weight: 600;
+}
+
+.settings-panel .app-button,
+.settings-row .app-button {
+    cursor: pointer;
+    pointer-events: auto;
+}
+
+.settings-panel .app-button:hover,
+.settings-row .app-button:hover {
+    background: var(--surface-light);
+}
+
+.settings-panel .app-button:active,
+.settings-row .app-button:active {
+    background: var(--accent-0);
+    color: var(--background);
+}
+
+.toggle {
+    background: rgba(255, 255, 255, 0.18);
+    border-radius: 999px;
+    cursor: pointer;
+    height: 28px;
+    padding: 0;
+    pointer-events: auto;
+    position: relative;
+    width: 48px;
+}
+
+.toggle-thumb {
+    background: #ffffff;
+    border-radius: 50%;
+    display: block;
+    height: 20px;
+    left: 4px;
+    position: absolute;
+    top: 4px;
+    transition: transform 0.2s ease;
+    width: 20px;
+}
+
+.toggle[aria-pressed="true"] {
+    background: var(--accent-0);
+}
+
+.toggle[aria-pressed="true"] .toggle-thumb {
+    transform: translateX(20px);
+}

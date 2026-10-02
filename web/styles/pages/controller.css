@@ -1,0 +1,218 @@
+:root {
+    --action-a: #55fd8f;
+    --action-b: #ff5a49;
+    --action-x: #5ee2ff;
+    --action-y: #ffac40;
+    --axis-background: var(--accent-2);
+    --axis-knob-size: 52px;
+    --axis-size: 100px;
+    --control-font-weight: var(--app-button-font-weight);
+    --control-size: 58px;
+    --controller-surface: var(--surface);
+    --controller-surface-light: var(--controller-surface);
+    --side-size: 190px;
+}
+
+.controls {
+    align-items: center;
+    display: grid;
+    gap: 20px;
+    grid-template-columns: repeat(3, var(--side-size));
+    justify-items: center;
+    transform: scale(var(--controller-scale, 1));
+    transform-origin: top center;
+    width: fit-content;
+}
+
+.control-shoulder {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-small);
+    justify-self: center;
+    width: 150px;
+}
+
+.control-shoulder:first-child {
+    grid-column: 1;
+    grid-row: 1;
+}
+
+.control-shoulder:nth-child(2) {
+    grid-column: 3;
+    grid-row: 1;
+}
+
+.controls .app-button {
+    cursor: default;
+    pointer-events: none;
+}
+
+.control-trigger {
+    background: linear-gradient(
+        90deg,
+        var(--accent-0) 0 var(--trigger-fill, 0%),
+        var(--controller-surface) var(--trigger-fill, 0%) 100%
+    );
+    flex-direction: column;
+    gap: 5px;
+}
+
+.control-dpad {
+    grid-column: 1;
+    grid-row: 2;
+}
+
+.control-utility {
+    grid-column: 2;
+    grid-row: 2;
+}
+
+.control-actions {
+    grid-column: 3;
+    grid-row: 2;
+}
+
+.control-joysticks {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    width: 100%;
+}
+
+.control-dpad,
+.control-actions {
+    display: grid;
+    gap: var(--spacing-small);
+    grid-template-columns: repeat(3, var(--control-size));
+    grid-template-rows: repeat(3, var(--control-size));
+}
+
+.control-dpad button,
+.control-action {
+    align-items: center;
+    background: var(--controller-surface);
+    border-radius: 14px;
+    display: flex;
+    justify-content: center;
+    min-height: var(--control-size);
+    pointer-events: none;
+}
+
+.control-dpad button:nth-child(1) {
+    grid-column: 2;
+}
+
+.control-dpad button:nth-child(2) {
+    grid-column: 1;
+    grid-row: 2;
+}
+
+.control-dpad button:nth-child(3) {
+    grid-column: 3;
+    grid-row: 2;
+}
+
+.control-dpad button:nth-child(4) {
+    grid-column: 2;
+    grid-row: 3;
+}
+
+.control-action {
+    font-weight: var(--control-font-weight);
+    height: var(--control-size);
+    width: var(--control-size);
+}
+
+.control-action.action-y {
+    color: var(--action-y);
+    grid-column: 2;
+    grid-row: 1;
+}
+
+.control-action.action-b {
+    color: var(--action-b);
+    grid-column: 3;
+    grid-row: 2;
+}
+
+.control-action.action-a {
+    color: var(--action-a);
+    grid-column: 2;
+    grid-row: 3;
+}
+
+.control-action.action-x {
+    color: var(--action-x);
+    grid-column: 1;
+    grid-row: 2;
+}
+
+.control-utility {
+    display: grid;
+    gap: var(--spacing-small);
+    grid-template-columns: repeat(2, max-content);
+    justify-content: center;
+}
+
+.utility-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-small);
+}
+
+.control-joysticks {
+    align-items: center;
+    display: flex;
+    gap: 28px;
+    justify-content: center;
+    margin: 0 auto;
+}
+
+.joystick-group {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-small);
+}
+
+.joystick {
+    aspect-ratio: 1;
+    flex: 0 0 var(--axis-size);
+    height: var(--axis-size);
+    min-width: var(--axis-size);
+    pointer-events: none;
+    width: var(--axis-size);
+}
+
+.joystick-base {
+    align-items: center;
+    background: var(--axis-background);
+    border: 8px solid var(--controller-surface);
+    border-radius: 50%;
+    display: flex;
+    height: 100%;
+    justify-content: center;
+    width: 100%;
+}
+
+.joystick-knob {
+    align-items: center;
+    background: var(--controller-surface-light);
+    border-radius: 50%;
+    display: flex;
+    font-size: .75rem;
+    font-weight: var(--control-font-weight);
+    height: var(--axis-knob-size);
+    justify-content: center;
+    width: var(--axis-knob-size);
+}
+
+button.input-active {
+    background: var(--accent-0) !important;
+    color: var(--background) !important;
+}
+
+.joystick.input-active .joystick-knob {
+    background: var(--accent-0);
+    color: var(--background);
+}
