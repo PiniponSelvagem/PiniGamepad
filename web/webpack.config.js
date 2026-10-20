@@ -29,6 +29,7 @@ module.exports = (_environment, argv) => {
       new HtmlWebpackPlugin({
         template: "./index.html",
         filename: "index.html",
+        favicon: "./assets/favicon.svg",
         inject: "body",
         minify: production,
       }),

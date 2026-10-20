@@ -16,8 +16,7 @@ For an unminified debug output with preserved whitespace, run `npm run debug`. I
 To run the small Node API against the production bundle:
 
 ```powershell
-npm run build
-npm run server
+npm run build & npm run start
 ```
 
 The API exposes `GET /api/status` and `POST /api/input`.
