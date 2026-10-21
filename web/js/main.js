@@ -1,14 +1,30 @@
 const Handlebars = require('handlebars')
+const language = require('./constants/PGP_LANGUAGE.json')
+const settingOptionValues = require('../backend/constants/PGS_SETTINGS.json')
+const createTetrisGame = require('./games/tetris/tetris')
+
+const settingsOptions = {
+    controllerModel: settingOptionValues.controllerModel.map(value => ({
+        value,
+        label: language.settings.modelEmulation.option[value]
+    })),
+    sleepTimeout: settingOptionValues.sleepTimeout.map(value => ({
+        value,
+        label: language.settings.sleepTimeout.option[value]
+    }))
+}
 
 Handlebars.registerPartial('nav', require('../templates/nav.hbs'))
 
 const routes = {
     '#/': { page: 'gamepad', template: Handlebars.compile(require('../templates/gamepad.hbs')) },
-    '#/settings': { page: 'settings', template: Handlebars.compile(require('../templates/settings.hbs')) }
+    '#/settings': { page: 'settings', template: Handlebars.compile(require('../templates/settings.hbs')) },
+    '#/tetris': { page: 'tetris', template: Handlebars.compile(require('../templates/tetris.hbs')) }
 }
 const defaultHash = '#/'
 
 const app = document.querySelector('#app')
+const SMALL_LAYOUT_MAX_WIDTH = 600
 const statusInterval = 100
 const batteryInterval = 1000
 const status = {
@@ -19,12 +35,13 @@ let currentRoute = routes[defaultHash]
 let statusTimer = null
 let batteryTimer = null
 let batteryState = null
+let tetrisGame = null
 
 function applyDebugState() {
     const toggle = document.querySelector('[data-setting-key="debugMode"]')
     document.body.classList.toggle('debug-mode', debugMode)
     if (toggle) {
-        toggle.setAttribute('aria-pressed', String(debugMode))
+        toggle.dataset.pressed = String(debugMode)
     }
 }
 
@@ -34,7 +51,9 @@ async function loadSettings() {
 
     try {
         const response = await fetch('/api/settings', { cache: 'no-store' })
-        if (!response.ok) throw new Error(`Settings request failed: ${response.status}`)
+        if (!response.ok) {
+            throw new Error()
+        }
         const settings = await response.json()
         if (!settingsPage.isConnected) return
 
@@ -43,7 +62,7 @@ async function loadSettings() {
             if (key === 'debugMode' || !(key in settings)) return
 
             if (control.classList.contains('toggle')) {
-                control.setAttribute('aria-pressed', String(settings[key]))
+                control.dataset.pressed = String(settings[key])
             } else {
                 control.value = settings[key]
             }
@@ -71,7 +90,12 @@ async function saveSettings(updates) {
 }
 
 function render() {
-    app.innerHTML = currentRoute.template({ ...status, active: { [currentRoute.page]: true } })
+    app.innerHTML = currentRoute.template({
+        ...status,
+        active: { [currentRoute.page]: true },
+        language,
+        settingsOptions
+    })
     attachNavigationHandlers()
     applyDebugState()
     updateBatteryIndicator(batteryState)
@@ -86,25 +110,34 @@ function attachNavigationHandlers() {
     const toggle = document.querySelector('.nav-toggle')
     const menu = document.querySelector('.nav-menu')
     toggle.addEventListener('click', () => {
-        const expanded = toggle.getAttribute('aria-expanded') === 'true'
-        toggle.setAttribute('aria-expanded', String(!expanded))
+        const expanded = toggle.dataset.expanded === 'true'
+        toggle.dataset.expanded = String(!expanded)
         menu.classList.toggle('open', !expanded)
     })
     menu.querySelectorAll('.nav-link').forEach(link => {
         link.addEventListener('click', () => {
-            toggle.setAttribute('aria-expanded', 'false')
+            toggle.dataset.expanded = 'false'
             menu.classList.remove('open')
         })
     })
 }
 
 function handleRouteChange() {
-    currentRoute = routes[window.location.hash] || routes[defaultHash]
+    const nextRoute = routes[window.location.hash] || routes[defaultHash]
+    if (currentRoute.page === 'tetris' && nextRoute.page !== 'tetris') {
+        tetrisGame?.pause()
+    }
+    currentRoute = nextRoute
     render()
     if (currentRoute.page === 'gamepad') {
         startStatusPolling()
     } else {
         stopStatusPolling()
+    }
+
+    if (currentRoute.page === 'tetris') {
+        if (!tetrisGame) tetrisGame = createTetrisGame(language.tetris)
+        tetrisGame.mount(document.querySelector('.tetris-page'))
     }
 }
 
@@ -152,6 +185,11 @@ function updateControllerScale() {
     document.documentElement.style.setProperty('--controller-scale', scale)
 }
 
+function updateLayoutBreakpoint() {
+    const smallLayout = window.matchMedia(`(max-width: ${SMALL_LAYOUT_MAX_WIDTH}px)`).matches
+    document.documentElement.classList.toggle('layout-small', smallLayout)
+}
+
 function attachSettingsHandlers() {
     const ledColor = document.querySelector('[data-setting-key="ledColor"]')
     const toggles = document.querySelectorAll('.toggle')
@@ -176,9 +214,9 @@ function attachSettingsHandlers() {
         const key = toggle.dataset.settingKey
 
         toggle.addEventListener('click', () => {
-            const pressed = toggle.getAttribute('aria-pressed') === 'true'
+            const pressed = toggle.dataset.pressed === 'true'
             const nextPressed = !pressed
-            toggle.setAttribute('aria-pressed', String(nextPressed))
+            toggle.dataset.pressed = String(nextPressed)
 
             const cssClass = toggle.dataset.toggleClass
             if (cssClass) {
@@ -215,7 +253,9 @@ function stopStatusPolling() {
 async function loadStatus() {
     try {
         const response = await fetch('/api/status', { cache: 'no-store' })
-        if (!response.ok) throw new Error(`Status request failed: ${response.status}`)
+        if (!response.ok) {
+            throw new Error()
+        }
         const data = await response.json()
         status.inputs = Array.isArray(data.inputs) ? data.inputs : []
     } catch (_error) {
@@ -227,7 +267,9 @@ async function loadStatus() {
 async function loadBatteryStatus() {
     try {
         const response = await fetch('/api/battery', { cache: 'no-store' })
-        if (!response.ok) throw new Error(`Battery request failed: ${response.status}`)
+        if (!response.ok) {
+            throw new Error()
+        }
         batteryState = await response.json()
         updateBatteryIndicator(batteryState)
     } catch (_error) {
@@ -243,14 +285,14 @@ function updateBatteryIndicator(battery) {
     if (!indicator || !level || !charging) return
 
     if (!battery || !Number.isFinite(battery.percentage)) {
-        level.textContent = '--%'
+        level.textContent = language.shared.battery.unknown
         indicator.classList.remove('is-low')
         charging.hidden = true
         return
     }
 
     const percentage = Math.max(0, Math.min(100, Math.round(battery.percentage)))
-    level.textContent = `${percentage} %`
+    level.textContent = `${percentage}${language.shared.battery.percentageSuffix}`
     indicator.classList.toggle('is-low', percentage <= 20)
     charging.hidden = battery.charging !== true
 }
@@ -258,7 +300,9 @@ function updateBatteryIndicator(battery) {
 window.addEventListener('DOMContentLoaded', () => {
     handleRouteChange()
     startBatteryPolling()
+    updateLayoutBreakpoint()
     updateControllerScale()
+    window.addEventListener('resize', updateLayoutBreakpoint)
     window.addEventListener('resize', updateControllerScale)
     window.addEventListener('hashchange', handleRouteChange)
 })

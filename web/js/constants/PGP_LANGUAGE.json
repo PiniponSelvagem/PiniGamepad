@@ -1,0 +1,86 @@
+{
+    "application": {
+        "name": "PiniGamepad",
+        "loading": "Loading PiniGamepad..."
+    },
+    "shared": {
+        "navigation": {
+            "controller": "Controller",
+            "settings": "Settings",
+            "tetris": "Tetris"
+        },
+        "battery": {
+            "unknown": "-- %",
+            "chargingSymbol": "⚡",
+            "percentageSuffix": " %"
+        }
+    },
+    "controller": {
+        "controls": {
+            "leftTrigger": "LT",
+            "rightTrigger": "RT",
+            "leftBumper": "LB",
+            "rightBumper": "RB",
+            "up": "▲",
+            "left": "◀",
+            "right": "▶",
+            "down": "▼",
+            "macro": "MACRO",
+            "select": "SELECT",
+            "home": "HOME",
+            "start": "START",
+            "leftStick": "L",
+            "rightStick": "R",
+            "leftStickButton": "L3",
+            "rightStickButton": "R3",
+            "actionY": "Y",
+            "actionB": "B",
+            "actionA": "A",
+            "actionX": "X"
+        }
+    },
+    "settings": {
+        "sections": {
+            "controller": "Controller",
+            "system": "System",
+            "developer": "Developer"
+        },
+        "modelEmulation": {
+            "label": "Model emulation",
+            "option": {
+                "xbox-series-x": "Xbox Series X",
+                "xbox-one": "Xbox One"
+            }
+        },
+        "sleepTimeout": {
+            "label": "Sleep timeout",
+            "option": {
+                "15": "15s",
+                "30": "30s",
+                "60": "1min",
+                "120": "2min",
+                "300": "5min",
+                "600": "10min"
+            }
+        },
+        "alwaysSendInputState": "Always send input state",
+        "ledColor": "LED color",
+        "debug": "Debug"
+    },
+    "tetris": {
+        "statistics": {
+            "score": "Score",
+            "level": "Level",
+            "lines": "Lines"
+        },
+        "paused": "PAUSED",
+        "gameOver": {
+            "title": "Game Over",
+            "restart": "Press Space to restart"
+        },
+        "restartConfirmation": {
+            "prompt": "Are you sure you want to restart?",
+            "options": "Y: Yes     N: No"
+        }
+    }
+}

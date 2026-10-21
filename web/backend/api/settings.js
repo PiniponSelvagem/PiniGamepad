@@ -1,4 +1,5 @@
 const settingOptions = require('../constants/PGS_SETTINGS.json')
+const language = require('../constants/PGP_LANGUAGE.json')
 
 const settings = {
     controllerModel: 'xbox-series-x',
@@ -14,7 +15,7 @@ function getSettings(_request, response) {
 function updateSettings(request, response) {
     const updates = request.body
     if (!updates || typeof updates !== 'object' || Array.isArray(updates)) {
-        return response.status(400).json({ error: 'Settings must be an object' })
+        return response.status(400).json({ error: language.settings.errors.invalidRequestBody })
     }
 
     for (const [key, value] of Object.entries(updates)) {
@@ -27,7 +28,8 @@ function updateSettings(request, response) {
                     : false
 
         if (!isValid) {
-            return response.status(400).json({ error: `Invalid setting: ${key}` })
+            const error = language.settings.errors.invalidSetting.replace('{setting}', key)
+            return response.status(400).json({ error })
         }
     }
 

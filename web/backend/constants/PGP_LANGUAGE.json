@@ -1,0 +1,8 @@
+{
+    "settings": {
+        "errors": {
+            "invalidRequestBody": "Settings must be an object",
+            "invalidSetting": "Invalid setting: {setting}"
+        }
+    }
+}

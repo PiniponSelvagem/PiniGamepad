@@ -67,10 +67,10 @@ button {
     width: 20px;
 }
 
-.toggle[aria-pressed="true"] {
+.toggle[data-pressed="true"] {
     background: var(--accent-0);
 }
 
-.toggle[aria-pressed="true"] .toggle-thumb {
+.toggle[data-pressed="true"] .toggle-thumb {
     transform: translateX(20px);
 }

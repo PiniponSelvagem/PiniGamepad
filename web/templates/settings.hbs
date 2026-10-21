@@ -3,37 +3,35 @@
 
     <div class="settings-page">
         <section class="settings-group">
-            <h2 class="settings-section-label">Controller</h2>
+            <h2 class="settings-section-label">{{language.settings.sections.controller}}</h2>
             <div class="settings-row settings-row-select">
-                <span class="settings-label">Model emulation</span>
+                <span class="settings-label">{{language.settings.modelEmulation.label}}</span>
                 <select class="settings-select" data-setting-key="controllerModel">
-                    <option value="xbox-series-x">Xbox Series X</option>
-                    <option value="xbox-one">Xbox One</option>
+                    {{#each settingsOptions.controllerModel}}
+                    <option value="{{value}}">{{label}}</option>
+                    {{/each}}
                 </select>
             </div>
         </section>
 
         <section class="settings-group">
-            <h2 class="settings-section-label">System</h2>
+            <h2 class="settings-section-label">{{language.settings.sections.system}}</h2>
             <div class="settings-row settings-row-select">
-                <span class="settings-label">Sleep timeout</span>
+                <span class="settings-label">{{language.settings.sleepTimeout.label}}</span>
                 <select class="settings-select" data-setting-key="sleepTimeout">
-                    <option value="15">15s</option>
-                    <option value="30">30s</option>
-                    <option value="60">1min</option>
-                    <option value="120">2min</option>
-                    <option value="300">5min</option>
-                    <option value="600">10min</option>
+                    {{#each settingsOptions.sleepTimeout}}
+                    <option value="{{value}}">{{label}}</option>
+                    {{/each}}
                 </select>
             </div>
             <div class="settings-row settings-row-toggle">
-                <span class="settings-label">Always send input state</span>
-                <button class="toggle" type="button" aria-pressed="false" data-setting-key="inputReportAlways">
+                <span class="settings-label">{{language.settings.alwaysSendInputState}}</span>
+                <button class="toggle" type="button" data-pressed="false" data-setting-key="inputReportAlways">
                     <span class="toggle-thumb"></span>
                 </button>
             </div>
             <div class="settings-row settings-row-led">
-                <label class="settings-label" for="led-color">LED color</label>
+                <span class="settings-label">{{language.settings.ledColor}}</span>
                 <div class="led-color-control">
                     <span class="led-color-value">#FF9F1C</span>
                     <input class="led-color-input" id="led-color" type="color" value="#ff9f1c" data-setting-key="ledColor">
@@ -42,10 +40,10 @@
         </section>
 
         <section class="settings-group">
-            <h2 class="settings-section-label">Developer</h2>
+            <h2 class="settings-section-label">{{language.settings.sections.developer}}</h2>
             <div class="settings-row settings-row-toggle">
-                <span class="settings-label">Debug</span>
-                <button class="toggle debug-toggle" type="button" aria-pressed="false" data-setting-key="debugMode" data-toggle-class="debug-mode">
+                <span class="settings-label">{{language.settings.debug}}</span>
+                <button class="toggle debug-toggle" type="button" data-pressed="false" data-setting-key="debugMode" data-toggle-class="debug-mode">
                     <span class="toggle-thumb"></span>
                 </button>
             </div>

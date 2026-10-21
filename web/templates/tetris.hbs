@@ -1,0 +1,28 @@
+<section class="app-layout">
+    {{> nav}}
+
+    <main class="tetris-page">
+        <div class="tetris-game">
+            <div class="tetris-board-stage">
+                <canvas class="tetris-board" width="300" height="600"></canvas>
+            </div>
+        </div>
+        <aside class="tetris-sidebar">
+            <section class="tetris-next-section">
+                <canvas class="tetris-next-piece" width="120" height="120"></canvas>
+            </section>
+            <div class="tetris-stat">
+                <span>{{language.tetris.statistics.score}}</span>
+                <strong class="tetris-score">0</strong>
+            </div>
+            <div class="tetris-stat">
+                <span>{{language.tetris.statistics.level}}</span>
+                <strong class="tetris-level">1</strong>
+            </div>
+            <div class="tetris-stat">
+                <span>{{language.tetris.statistics.lines}}</span>
+                <strong class="tetris-lines">0</strong>
+            </div>
+        </aside>
+    </main>
+</section>

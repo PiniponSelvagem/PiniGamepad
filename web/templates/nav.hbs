@@ -1,16 +1,17 @@
 <nav class="app-nav">
-    <button type="button" class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+    <button type="button" class="nav-toggle" data-expanded="false">
         <span></span>
         <span></span>
         <span></span>
     </button>
-    <span class="nav-brand">PiniGamepad</span>
+    <span class="nav-brand">{{language.application.name}}</span>
     <div class="nav-menu">
-        <a href="#/" class="nav-link{{#if active.gamepad}} active{{/if}}">Controller</a>
-        <a href="#/settings" class="nav-link{{#if active.settings}} active{{/if}}">Settings</a>
+        <a href="#/" class="nav-link{{#if active.gamepad}} active{{/if}}">{{language.shared.navigation.controller}}</a>
+        <a href="#/settings" class="nav-link{{#if active.settings}} active{{/if}}">{{language.shared.navigation.settings}}</a>
+        <a href="#/tetris" class="nav-link{{#if active.tetris}} active{{/if}}">{{language.shared.navigation.tetris}}</a>
     </div>
     <div class="nav-battery">
-        <span class="nav-battery-charging" hidden>&#9889;</span>
-        <span class="nav-battery-level">-- %</span>
+        <span class="nav-battery-charging" hidden>{{language.shared.battery.chargingSymbol}}</span>
+        <span class="nav-battery-level">{{language.shared.battery.unknown}}</span>
     </div>
 </nav>
