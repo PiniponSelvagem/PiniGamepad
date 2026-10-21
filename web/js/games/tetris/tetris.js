@@ -2,7 +2,7 @@ const engine = require('./engine')
 
 const CELL_SIZE = 30
 const BASE_GRAVITY_INTERVAL = 600
-const LEVEL_SPEED_STEP = 0.125
+const LEVEL_SPEED_STEP = 1 / 3
 const MIN_GRAVITY_INTERVAL = 60
 const LINE_CLEAR_DURATION = 400
 const LINE_CLEAR_BLINKS = 3
