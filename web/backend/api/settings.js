@@ -8,10 +8,22 @@ const settings = {
     ledColor: '#ff9f1c'
 }
 
+/**
+ * @brief   Send the current in-memory device settings.
+ * @param   _request Incoming request; unused.
+ * @param   response Response receiving the settings as JSON.
+ */
 function getSettings(_request, response) {
     response.json(settings)
 }
 
+/**
+ * @brief   Validate and apply a partial update to the in-memory settings.
+ * @param   request Incoming request containing the proposed settings in its body.
+ * @param   response Response receiving the updated settings or a validation error.
+ * @return  The Express response containing the updated settings or an HTTP 400 error.
+ * @note    The entire update is rejected if any entry is invalid; settings reset on server restart.
+ */
 function updateSettings(request, response) {
     const updates = request.body
     if (!updates || typeof updates !== 'object' || Array.isArray(updates)) {

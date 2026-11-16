@@ -19,7 +19,9 @@ To run the small Node API against the production bundle:
 npm run build & npm run start
 ```
 
-The API exposes `GET /api/status` and `POST /api/input`.
+The Node API exposes `GET /api/settings`, `PATCH /api/settings`,
+`GET /api/status`, and `GET /api/battery`. Inputs and battery readings are
+not simulated: they remain empty or unknown until provided to the status API.
 
 ## Firmware handoff
 
