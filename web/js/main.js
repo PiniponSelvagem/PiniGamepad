@@ -1,480 +1,244 @@
 const Handlebars = require('handlebars')
 const language = require('./constants/PGP_LANGUAGE.json')
-const settingOptionValues = require('../backend/constants/PGS_SETTINGS.json')
+const settingValues = require('../backend/constants/PGS_SETTINGS.json')
 const createTetrisGame = require('./games/tetris/tetris')
 
-const settingsOptions = {
-    controllerModel: settingOptionValues.controllerModel.map(
-        /**
-         * @brief Pair a controller-model value with its localized label.
-         * @param value Valid controller model.
-         * @return Option value and label.
-         */
-        value => ({
-            value,
-            label: language.settings.modelEmulation.option[value]
-        })
-    ),
-    sleepTimeout: settingOptionValues.sleepTimeout.map(
-        /**
-         * @brief Pair a timeout value with its localized label.
-         * @param value Valid timeout in seconds.
-         * @return Option value and label.
-         */
-        value => ({
-            value,
-            label: language.settings.sleepTimeout.option[value]
-        })
-    )
-}
+const SMALL_LAYOUT_MAX_WIDTH = 600
+const CONTROLLER_SIDE_INSET = 24
+const CONTROLLER_FULL_SIZE_WIDTH = 610 // controller is scaled down below this window width
+const STATUS_INTERVAL = 100
+const BATTERY_INTERVAL = 10000
+const LOW_BATTERY_PERCENTAGE = 20
+const DEFAULT_PAGE = 'gamepad'
 
 Handlebars.registerPartial('nav', require('../templates/nav.hbs'))
-
-const routes = {
-    '#/': { page: 'gamepad', template: Handlebars.compile(require('../templates/gamepad.hbs')) },
-    '#/settings': { page: 'settings', template: Handlebars.compile(require('../templates/settings.hbs')) },
-    '#/tetris': { page: 'tetris', template: Handlebars.compile(require('../templates/tetris.hbs')) }
+// The page name is also its route: '#/settings' renders 'settings'; unknown routes render the default page.
+const templates = {
+    gamepad: Handlebars.compile(require('../templates/gamepad.hbs')),
+    settings: Handlebars.compile(require('../templates/settings.hbs')),
+    tetris: Handlebars.compile(require('../templates/tetris.hbs'))
 }
-const defaultHash = '#/'
 
 const app = document.querySelector('#app')
-const SMALL_LAYOUT_MAX_WIDTH = 600
-const statusInterval = 100
-const batteryInterval = 10000
-const status = {
-    inputs: []
-}
-let debugMode = false
-let currentRoute = routes[defaultHash]
+let page = DEFAULT_PAGE
+let inputs = []
+let battery = null
 let statusTimer = null
-let batteryTimer = null
-let batteryState = null
 let tetrisGame = null
 
 /**
- * @brief   Apply the client-side debug state to the page and its settings toggle.
+ * @brief   Fetch JSON from the server without caching.
+ * @param   url Address to request.
+ * @return  The parsed JSON, or null if the request or the response failed.
  */
-function applyDebugState() {
-    const toggle = document.querySelector('[data-setting-key="debugMode"]')
-    document.body.classList.toggle('debug-mode', debugMode)
-    if (toggle) {
-        toggle.dataset.pressed = String(debugMode)
-    }
+const getJson = url => fetch(url, { cache: 'no-store' })
+    .then(response => (response.ok ? response.json() : null))
+    .catch(() => null)
+
+/**
+ * @brief   Run a loader now and then repeatedly.
+ * @param   load Function to call.
+ * @param   interval Time between calls in milliseconds.
+ * @return  The interval id, for clearInterval.
+ */
+function poll(load, interval) {
+    load()
+    return setInterval(load, interval)
 }
 
 /**
- * @brief   Load server settings and populate the currently rendered settings page.
- * @return  A promise that resolves after the page is updated or the request fails.
- * @note    The debug setting remains client-side; a page removed during the request is ignored.
+ * @brief   Show the LED color's hexadecimal value next to its picker.
+ * @param   input The LED color input.
+ */
+function showLedColor(input) {
+    app.querySelector('.led-color-value').textContent = input.value.toUpperCase()
+}
+
+/**
+ * @brief   Fill the settings page with the settings stored on the server.
+ * @note    The debug setting only lives in the browser, so the server does not return it.
  */
 async function loadSettings() {
-    const settingsPage = document.querySelector('.settings-page')
-    if (!settingsPage) return
+    const settings = await getJson('/api/settings')
+    if (!settings) return
 
-    try {
-        const response = await fetch('/api/settings', { cache: 'no-store' })
-        if (!response.ok) {
-            throw new Error()
-        }
-        const settings = await response.json()
-        if (!settingsPage.isConnected) return
-
-        settingsPage.querySelectorAll('[data-setting-key]').forEach(
-            /**
-             * @brief Apply one returned setting to its control.
-             * @param control Rendered settings control.
-             */
-            control => {
-            const key = control.dataset.settingKey
-            if (key === 'debugMode' || !(key in settings)) return
-
-            if (control.classList.contains('toggle')) {
-                control.dataset.pressed = String(settings[key])
-            } else {
-                control.value = settings[key]
-            }
-        })
-
-        const colorValue = settingsPage.querySelector('.led-color-value')
-        if (colorValue && settings.ledColor) {
-            colorValue.textContent = settings.ledColor.toUpperCase()
-        }
-    } catch (_error) {
-        return
-    }
+    app.querySelectorAll('[data-setting-key]').forEach(control => {
+        const value = settings[control.dataset.settingKey]
+        if (value === undefined) return
+        if (control.classList.contains('toggle')) control.dataset.pressed = value
+        else control.value = value
+    })
+    const ledColor = app.querySelector('[data-setting-key="ledColor"]')
+    if (ledColor) showLedColor(ledColor)
 }
 
 /**
- * @brief   Send a partial settings update to the server.
- * @param   updates Object containing the settings to change.
- * @return  A promise that resolves after the request completes or fails.
- * @note    Request errors are currently ignored and server responses are not checked.
+ * @brief   Send changed settings to the server.
+ * @param   updates Object with the settings to change, by setting key.
+ * @note    Failures are ignored.
  */
-async function saveSettings(updates) {
-    try {
-        await fetch('/api/settings', {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(updates)
-        })
-    } catch (_error) {
-        return
-    }
+function saveSettings(updates) {
+    fetch('/api/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates)
+    }).catch(() => {})
 }
 
 /**
- * @brief   Render the current route and attach handlers for its page.
- * @note    Replaces the app's HTML before restoring debug and battery display state.
+ * @brief   Switch a toggle and apply it: debug mode is a body class, other toggles are saved on the server.
+ * @param   toggle The toggle button.
  */
-function render() {
-    app.innerHTML = currentRoute.template({
-        ...status,
-        active: { [currentRoute.page]: true },
+function flipToggle(toggle) {
+    const pressed = toggle.dataset.pressed !== 'true'
+    toggle.dataset.pressed = pressed
+    const key = toggle.dataset.settingKey
+    if (key === 'debugMode') document.body.classList.toggle('debug-mode', pressed)
+    else saveSettings({ [key]: pressed })
+}
+
+/**
+ * @brief   Handle clicks anywhere in the app: settings toggles and the navigation menu.
+ * @param   event Click event.
+ * @note    Listening on the app element covers pages rendered later.
+ */
+function onClick(event) {
+    const toggle = event.target.closest('.toggle')
+    if (toggle) flipToggle(toggle)
+    else if (event.target.closest('.nav-toggle')) app.querySelector('.nav-menu').classList.toggle('open')
+    else if (event.target.closest('.nav-link')) app.querySelector('.nav-menu').classList.remove('open')
+}
+
+/**
+ * @brief   Save a settings control when the user finishes changing it.
+ * @param   event Change event.
+ */
+function onChange({ target }) {
+    const key = target.dataset.settingKey
+    if (key) saveSettings({ [key]: target.value })
+}
+
+/**
+ * @brief   Keep the LED color's hexadecimal value up to date while the picker is used.
+ * @param   event Input event.
+ */
+function onInput({ target }) {
+    if (target.dataset.settingKey === 'ledColor') showLedColor(target)
+}
+
+/**
+ * @brief   Show the page selected by the URL hash and start or stop what that page needs.
+ * @note    Leaving Tetris pauses its game; controller input is only polled on the controller page.
+ */
+function showPage() {
+    const name = window.location.hash.slice(2)
+    const next = Object.hasOwn(templates, name) ? name : DEFAULT_PAGE
+    if (page === 'tetris' && next !== 'tetris') tetrisGame.pause()
+    page = next
+
+    app.innerHTML = templates[page]({
         language,
-        settingsOptions
+        settingValues,
+        active: { [page]: true },
+        debugMode: document.body.classList.contains('debug-mode')
     })
-    attachNavigationHandlers()
-    applyDebugState()
-    updateBatteryIndicator(batteryState)
-    if (currentRoute.page === 'gamepad') updateInputView()
-    if (currentRoute.page === 'settings') {
-        attachSettingsHandlers()
-        loadSettings()
-    }
-}
+    showBattery()
 
-/**
- * @brief   Attach handlers that open and close the navigation menu.
- */
-function attachNavigationHandlers() {
-    const toggle = document.querySelector('.nav-toggle')
-    const menu = document.querySelector('.nav-menu')
-    toggle.addEventListener('click',
-        /**
-         * @brief Open or close the navigation menu when its toggle is clicked. */
-        () => {
-            const expanded = toggle.dataset.expanded === 'true'
-            toggle.dataset.expanded = String(!expanded)
-            menu.classList.toggle('open', !expanded)
-        }
-    )
-    menu.querySelectorAll('.nav-link').forEach(
-        /**
-         * @brief Attach a menu-close handler to a navigation link.
-         * @param link Navigation link element.
-         */
-        link => {
-        link.addEventListener('click',
-            /**
-             * @brief Close the navigation menu after selecting a link.
-             */
-            () => {
-                toggle.dataset.expanded = 'false'
-                menu.classList.remove('open')
-        })
-    })
-}
-
-/**
- * @brief   Render the selected hash route and manage page-specific polling and Tetris lifecycle.
- * @note    Leaving Tetris pauses its game; controller input polling runs only on the controller page.
- */
-function handleRouteChange() {
-    const nextRoute = routes[window.location.hash] || routes[defaultHash]
-    if (currentRoute.page === 'tetris' && nextRoute.page !== 'tetris') {
-        tetrisGame?.pause()
-    }
-    currentRoute = nextRoute
-    render()
-    if (currentRoute.page === 'gamepad') {
-        startStatusPolling()
+    if (page === 'gamepad') {
+        showInputs()
+        statusTimer ??= poll(loadStatus, STATUS_INTERVAL)
     } else {
-        stopStatusPolling()
+        clearInterval(statusTimer)
+        statusTimer = null
     }
-
-    if (currentRoute.page === 'tetris') {
-        if (!tetrisGame) tetrisGame = createTetrisGame(language.tetris)
-        tetrisGame.mount(document.querySelector('.tetris-page'))
+    if (page === 'settings') loadSettings()
+    if (page === 'tetris') {
+        tetrisGame ??= createTetrisGame(language.tetris)
+        tetrisGame.mount(app.querySelector('.tetris-page'))
     }
 }
 
 /**
- * @brief   Update controller buttons, triggers, and joystick positions from the latest input status.
- * @note    Joystick positions are scaled to the visible distance between the knob and its base.
+ * @brief   Show the latest controller inputs on the controller page.
+ * @note    Joystick knobs move over the free distance between the knob and its base.
  */
-function updateInputView() {
-    const inputs = status.inputs || []
-    const activeButtons = new Set(
-        inputs.filter(
-            /**
-             * @brief Identify button inputs.
-             * @param input Input status entry.
-             * @return True for a button.
-             */
-            input => input.type === 'button').map(
-            /**
-             * @brief Extract a button name.
-             * @param input Button status entry.
-             * @return Button name.
-             */
-            input => input.name)
-    )
-    document.querySelectorAll('[data-input]').forEach(
-        /**
-         * @brief Highlight a button when its input is active.
-         * @param button Controller button element.
-         */
-        button => {
-        button.classList.toggle('input-active', activeButtons.has(button.dataset.input))
+function showInputs() {
+    const findAxis = (name, hasValue) => inputs.find(input => (
+        input.type === 'axis' && input.name === name && (input.value !== undefined) === hasValue
+    ))
+
+    app.querySelectorAll('[data-input]').forEach(button => {
+        const pressed = inputs.some(input => input.type === 'button' && input.name === button.dataset.input)
+        button.classList.toggle('input-active', pressed)
     })
-    document.querySelectorAll('[data-analog]').forEach(
-        /**
-         * @brief Update one analog trigger's fill and active state.
-         * @param trigger Trigger element.
-         */
-        trigger => {
-        const input = inputs.find(
-            /**
-             * @brief Match this analog trigger.
-             * @param activeInput Input status entry.
-             * @return True for the matching trigger.
-             */
-            activeInput => (
-                activeInput.type === 'axis' &&
-                activeInput.value !== undefined &&
-                activeInput.name === trigger.dataset.analog
-            )
-        )
-        const active = Boolean(input)
-        const value = active ? input.value : 0
-        trigger.style.setProperty('--trigger-fill', `${value}%`)
-        trigger.classList.toggle('input-active', active)
+    app.querySelectorAll('[data-analog]').forEach(trigger => {
+        const input = findAxis(trigger.dataset.analog, true)
+        trigger.style.setProperty('--trigger-fill', `${input ? input.value : 0}%`)
+        trigger.classList.toggle('input-active', Boolean(input))
     })
-    document.querySelectorAll('[data-axis]').forEach(
-        /**
-         * @brief Position and highlight one joystick from input status.
-         * @param axis Joystick element.
-         */
-        axis => {
+    app.querySelectorAll('[data-axis]').forEach(axis => {
+        const stick = findAxis(axis.dataset.axis, false)
+        const { x, y } = stick ?? { x: 0, y: 0 }
         const knob = axis.querySelector('.joystick-knob')
-        const input = inputs.find(
-            /**
-             * @brief Match this joystick axis.
-             * @param activeInput Input status entry.
-             * @return True for the matching joystick.
-             */
-            activeInput => (
-                activeInput.type === 'axis' &&
-                activeInput.value === undefined &&
-                activeInput.name === axis.dataset.axis
-            )
-        )
-        const active = Boolean(input)
         const maximum = (axis.clientWidth - knob.offsetWidth) / 2
-        const x = active ? input.x / 100 * maximum : 0
-        const y = active ? -input.y / 100 * maximum : 0
-        knob.style.transform = `translate(${x}px, ${y}px)`
-        axis.classList.toggle('input-active', active)
-    })
-}
-
-const controllerSideInset = 24
-const scaleBreakpoint = 610
-
-/**
- * @brief   Set the controller's scale according to available window width.
- */
-function updateControllerScale() {
-    const availableWidth = window.innerWidth - controllerSideInset
-    const scale = Math.min(1, availableWidth / scaleBreakpoint)
-    document.documentElement.style.setProperty('--controller-scale', scale)
-}
-
-/**
- * @brief   Toggle the small-layout class based on the configured viewport breakpoint.
- */
-function updateLayoutBreakpoint() {
-    const smallLayout = window.matchMedia(`(max-width: ${SMALL_LAYOUT_MAX_WIDTH}px)`).matches
-    document.documentElement.classList.toggle('layout-small', smallLayout)
-}
-
-/**
- * @brief   Attach handlers for settings selectors, color input, and toggles.
- * @note    Device settings are sent to the server; debug mode stays in the client.
- */
-function attachSettingsHandlers() {
-    const ledColor = document.querySelector('[data-setting-key="ledColor"]')
-    const toggles = document.querySelectorAll('.toggle')
-
-    document.querySelectorAll('select[data-setting-key]').forEach(
-        /**
-         * @brief Attach a save handler to one settings selector.
-         * @param control Selector element.
-         */
-        control => {
-        control.addEventListener('change',
-            /**
-             * @brief Save the selector's currently selected value.
-             */
-            () => {
-                saveSettings({ [control.dataset.settingKey]: control.value })
-            }
-        )
-    }
-)
-
-    if (ledColor) {
-        ledColor.addEventListener('input',
-            /**
-             * @brief Update the displayed hexadecimal color while the picker changes.
-             */
-            () => {
-                document.querySelector('.led-color-value').textContent = ledColor.value.toUpperCase()
-            }
-        )
-
-        ledColor.addEventListener('change',
-            /**
-             * @brief Save the selected LED color.
-             */
-            () => {
-                saveSettings({ ledColor: ledColor.value })
-            }
-        )
-    }
-
-    toggles.forEach(
-        /**
-         * @brief Attach the appropriate save or debug handler to a toggle.
-         * @param toggle Toggle element.
-         */
-        toggle => {
-        const key = toggle.dataset.settingKey
-
-        toggle.addEventListener('click',
-            /**
-             * @brief Switch the toggle and apply or save its new state.
-             */
-            () => {
-                const pressed = toggle.dataset.pressed === 'true'
-                const nextPressed = !pressed
-                toggle.dataset.pressed = String(nextPressed)
-
-                const cssClass = toggle.dataset.toggleClass
-                if (cssClass) {
-                    document.body.classList.toggle(cssClass, nextPressed)
-                }
-
-                if (key === 'debugMode') {
-                    debugMode = nextPressed
-                } else if (key) {
-                    saveSettings({ [key]: nextPressed })
-                }
-            }
-        )
+        knob.style.transform = `translate(${x / 100 * maximum}px, ${-y / 100 * maximum}px)`
+        axis.classList.toggle('input-active', Boolean(stick))
     })
 }
 
 /**
- * @brief   Start controller input polling if it is not already running.
+ * @brief   Update the small-layout class and the controller scale for the current window width.
  */
-function startStatusPolling() {
-    if (statusTimer !== null) return
-    loadStatus()
-    statusTimer = window.setInterval(loadStatus, statusInterval)
+function onResize() {
+    const root = document.documentElement
+    root.classList.toggle('layout-small', window.matchMedia(`(max-width: ${SMALL_LAYOUT_MAX_WIDTH}px)`).matches)
+    root.style.setProperty(
+        '--controller-scale',
+        Math.min(1, (window.innerWidth - CONTROLLER_SIDE_INSET) / CONTROLLER_FULL_SIZE_WIDTH)
+    )
 }
 
 /**
- * @brief   Start battery polling independently of the current route.
- */
-function startBatteryPolling() {
-    if (batteryTimer !== null) return
-    loadBatteryStatus()
-    batteryTimer = window.setInterval(loadBatteryStatus, batteryInterval)
-}
-
-/**
- * @brief   Stop controller input polling if it is running.
- */
-function stopStatusPolling() {
-    if (statusTimer === null) return
-    window.clearInterval(statusTimer)
-    statusTimer = null
-}
-
-/**
- * @brief   Fetch the latest controller inputs and update the controller view when active.
- * @return  A promise that resolves after the status is applied or the request fails.
- * @note    Failed requests clear the current input list.
+ * @brief   Fetch the latest controller inputs and show them if the controller page is open.
+ * @note    The inputs are cleared if the request fails.
  */
 async function loadStatus() {
-    try {
-        const response = await fetch('/api/status', { cache: 'no-store' })
-        if (!response.ok) {
-            throw new Error()
-        }
-        const data = await response.json()
-        status.inputs = Array.isArray(data.inputs) ? data.inputs : []
-    } catch (_error) {
-        status.inputs = []
-    }
-    if (currentRoute.page === 'gamepad') updateInputView()
+    const data = await getJson('/api/status')
+    inputs = Array.isArray(data?.inputs) ? data.inputs : []
+    if (page === 'gamepad') showInputs()
 }
 
 /**
- * @brief   Fetch battery state and refresh the navigation indicator.
- * @return  A promise that resolves after the indicator is updated.
- * @note    Failed requests display the unknown-battery placeholder.
+ * @brief   Show the battery in the navigation bar: percentage, low-charge color and charging symbol.
+ * @note    Without a valid reading the unknown placeholder is shown. Percentages are rounded and kept within 0 to 100.
  */
-async function loadBatteryStatus() {
-    try {
-        const response = await fetch('/api/battery', { cache: 'no-store' })
-        if (!response.ok) {
-            throw new Error()
-        }
-        batteryState = await response.json()
-        updateBatteryIndicator(batteryState)
-    } catch (_error) {
-        batteryState = null
-        updateBatteryIndicator(batteryState)
-    }
+function showBattery() {
+    const percentage = Number.isFinite(battery?.percentage)
+        ? Math.max(0, Math.min(100, Math.round(battery.percentage)))
+        : null
+    const indicator = app.querySelector('.nav-battery')
+    const text = language.shared.battery
+
+    indicator.querySelector('.nav-battery-level').textContent =
+        percentage === null ? text.unknown : `${percentage}${text.percentageSuffix}`
+    indicator.classList.toggle('is-low', percentage !== null && percentage <= LOW_BATTERY_PERCENTAGE)
+    indicator.querySelector('.nav-battery-charging').hidden = percentage === null || battery.charging !== true
 }
 
 /**
- * @brief   Update the navigation battery percentage, low-charge color, and charging symbol.
- * @param   battery Battery object with percentage and charging fields, or null if unavailable.
- * @note    Percentages are rounded and clamped to 0 through 100 for display.
+ * @brief   Fetch the battery state and show it.
+ * @note    The unknown placeholder is shown if the request fails.
  */
-function updateBatteryIndicator(battery) {
-    const indicator = document.querySelector('.nav-battery')
-    const level = indicator?.querySelector('.nav-battery-level')
-    const charging = indicator?.querySelector('.nav-battery-charging')
-    if (!indicator || !level || !charging) return
-
-    if (!battery || !Number.isFinite(battery.percentage)) {
-        level.textContent = language.shared.battery.unknown
-        indicator.classList.remove('is-low')
-        charging.hidden = true
-        return
-    }
-
-    const percentage = Math.max(0, Math.min(100, Math.round(battery.percentage)))
-    level.textContent = `${percentage}${language.shared.battery.percentageSuffix}`
-    indicator.classList.toggle('is-low', percentage <= 20)
-    charging.hidden = battery.charging !== true
+async function loadBattery() {
+    battery = await getJson('/api/battery')
+    showBattery()
 }
 
-window.addEventListener('DOMContentLoaded',
-    /**
-     * @brief Initialize the first route, battery polling, layout, and window event handlers.
-     */
-    () => {
-        handleRouteChange()
-        startBatteryPolling()
-        updateLayoutBreakpoint()
-        updateControllerScale()
-        window.addEventListener('resize', updateLayoutBreakpoint)
-        window.addEventListener('resize', updateControllerScale)
-        window.addEventListener('hashchange', handleRouteChange)
-    }
-)
+app.addEventListener('click', onClick)
+app.addEventListener('change', onChange)
+app.addEventListener('input', onInput)
+window.addEventListener('hashchange', showPage)
+window.addEventListener('resize', onResize)
+onResize()
+showPage()
+poll(loadBattery, BATTERY_INTERVAL)

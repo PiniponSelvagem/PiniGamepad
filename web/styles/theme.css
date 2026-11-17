@@ -1,15 +1,11 @@
 :root {
-    --debug-rainbow-enabled: 0;
-
     /* Theme colors */
     --accent-0: #ff9f1c;
     --accent-1: #383838;
     --accent-2: #161616;
     --accent-3: #2a2a2a;
     --accent-1-light: color-mix(in srgb, var(--accent-1) 75%, white);
-    --accent-1-dark: color-mix(in srgb, var(--accent-1) 70%, black);
     --background: var(--accent-2);
-    --page-background: var(--background);
     --surface: var(--accent-1);
     --surface-light: var(--accent-1-light);
     --text: #ffffff;
@@ -61,42 +57,33 @@
     font-family: var(--font-family);
 }
 
-html.debug-mode,
+/* Debug mode (settings > Developer): a vivid striped backdrop for testing blurred elements. */
 body.debug-mode {
-    --debug-rainbow-enabled: 1;
     background: #090b12;
     min-height: 100vh;
     position: relative;
 }
 
 body.debug-mode::before {
+    background: linear-gradient(
+        90deg,
+        #ff0055 0 12.5%,
+        #00d9ff 12.5% 25%,
+        #ff7a00 25% 37.5%,
+        #7a5cff 37.5% 50%,
+        #ffd000 50% 62.5%,
+        #00ff95 62.5% 75%,
+        #ff3d81 75% 87.5%,
+        #00c2ff 87.5% 100%
+    );
     content: "";
-    position: fixed;
     inset: 0;
     pointer-events: none;
+    position: fixed;
     z-index: 0;
-    background:
-        linear-gradient(
-            90deg,
-            #ff0055 0 12.5%,
-            #00d9ff 12.5% 25%,
-            #ff7a00 25% 37.5%,
-            #7a5cff 37.5% 50%,
-            #ffd000 50% 62.5%,
-            #00ff95 62.5% 75%,
-            #ff3d81 75% 87.5%,
-            #00c2ff 87.5% 100%
-        );
-    background-repeat: no-repeat;
-    background-size: 100% 100%;
 }
 
 body.debug-mode > * {
     position: relative;
     z-index: 1;
-}
-
-html:not(.debug-mode),
-body:not(.debug-mode) {
-    --debug-rainbow-enabled: 0;
 }

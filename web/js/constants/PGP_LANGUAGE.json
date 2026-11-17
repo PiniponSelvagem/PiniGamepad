@@ -16,28 +16,26 @@
         }
     },
     "controller": {
-        "controls": {
-            "leftTrigger": "LT",
-            "rightTrigger": "RT",
-            "leftBumper": "LB",
-            "rightBumper": "RB",
-            "up": "▲",
-            "left": "◀",
-            "right": "▶",
-            "down": "▼",
-            "macro": "MACRO",
-            "select": "SELECT",
-            "home": "HOME",
-            "start": "START",
-            "leftStick": "L",
-            "rightStick": "R",
-            "leftStickButton": "L3",
-            "rightStickButton": "R3",
-            "actionY": "Y",
-            "actionB": "B",
-            "actionA": "A",
-            "actionX": "X"
-        }
+        "LT": "LT",
+        "RT": "RT",
+        "LB": "LB",
+        "RB": "RB",
+        "UP": "▲",
+        "LEFT": "◀",
+        "RIGHT": "▶",
+        "DOWN": "▼",
+        "MACRO": "MACRO",
+        "SELECT": "SELECT",
+        "HOME": "HOME",
+        "START": "START",
+        "Y": "Y",
+        "B": "B",
+        "A": "A",
+        "X": "X",
+        "LS": "L",
+        "RS": "R",
+        "L3": "L3",
+        "R3": "R3"
     },
     "settings": {
         "sections": {
@@ -45,7 +43,7 @@
             "system": "System",
             "developer": "Developer"
         },
-        "modelEmulation": {
+        "controllerModel": {
             "label": "Model emulation",
             "option": {
                 "xbox-series-x": "Xbox Series X",
@@ -63,16 +61,14 @@
                 "600": "10min"
             }
         },
-        "alwaysSendInputState": "Always send input state",
+        "inputReportAlways": "Always send input state",
         "ledColor": "LED color",
-        "debug": "Debug"
+        "debugMode": "Debug"
     },
     "tetris": {
-        "statistics": {
-            "score": "Score",
-            "level": "Level",
-            "lines": "Lines"
-        },
+        "score": "Score",
+        "level": "Level",
+        "lines": "Lines",
         "paused": "PAUSED",
         "gameOver": {
             "title": "Game Over",

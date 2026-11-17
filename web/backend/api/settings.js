@@ -1,4 +1,4 @@
-const settingOptions = require('../constants/PGS_SETTINGS.json')
+const options = require('../constants/PGS_SETTINGS.json')
 const language = require('../constants/PGP_LANGUAGE.json')
 
 const settings = {
@@ -6,6 +6,16 @@ const settings = {
     sleepTimeout: '30',
     inputReportAlways: false,
     ledColor: '#ff9f1c'
+}
+
+/**
+ * Maps each setting name to a function that returns true when a value is valid for it.
+ * Settings with a list of options in PGS_SETTINGS.json get theirs generated; a setting missing here is rejected.
+ */
+const validators = {
+    ...Object.fromEntries(Object.entries(options).map(([key, values]) => [key, value => values.includes(value)])),
+    inputReportAlways: value => typeof value === 'boolean',
+    ledColor: value => typeof value === 'string' && /^#[\da-f]{6}$/i.test(value)
 }
 
 /**
@@ -20,9 +30,8 @@ function getSettings(_request, response) {
 /**
  * @brief   Validate and apply a partial update to the in-memory settings.
  * @param   request Incoming request containing the proposed settings in its body.
- * @param   response Response receiving the updated settings or a validation error.
- * @return  The Express response containing the updated settings or an HTTP 400 error.
- * @note    The entire update is rejected if any entry is invalid; settings reset on server restart.
+ * @param   response Response receiving the updated settings or an HTTP 400 error.
+ * @note    The whole update is rejected if any entry is invalid; settings reset on server restart.
  */
 function updateSettings(request, response) {
     const updates = request.body
@@ -31,22 +40,14 @@ function updateSettings(request, response) {
     }
 
     for (const [key, value] of Object.entries(updates)) {
-        const isValid = key in settingOptions
-            ? settingOptions[key].includes(value)
-            : key === 'inputReportAlways'
-                ? typeof value === 'boolean'
-                : key === 'ledColor'
-                    ? typeof value === 'string' && /^#[\da-f]{6}$/i.test(value)
-                    : false
-
-        if (!isValid) {
+        if (!Object.hasOwn(validators, key) || !validators[key](value)) {
             const error = language.settings.errors.invalidSetting.replace('{setting}', key)
             return response.status(400).json({ error })
         }
     }
 
     Object.assign(settings, updates)
-    return response.json(settings)
+    response.json(settings)
 }
 
 module.exports = { getSettings, updateSettings }

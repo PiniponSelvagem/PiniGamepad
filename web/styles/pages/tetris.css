@@ -14,6 +14,9 @@
     --tetris-piece-t: #bb61ff;
     --tetris-piece-z: #ff3b52;
     --tetris-text: #ffffff;
+    --tetris-board-width: min(300px, 80vw, calc((100vh - 150px) / 2));
+    --tetris-board-half-width: min(150px, 40vw, calc((100vh - 150px) / 4));
+    --tetris-sidebar-width: 120px;
     align-items: center;
     color: var(--tetris-text);
     display: flex;
@@ -25,7 +28,6 @@
 }
 
 .tetris-game {
-    justify-self: center;
     max-width: 100%;
     width: var(--tetris-board-width);
 }
@@ -40,11 +42,6 @@
     width: min(var(--tetris-sidebar-width), calc(50% - var(--tetris-board-half-width) - 32px));
 }
 
-.tetris-score {
-    font-variant-numeric: tabular-nums;
-    font-weight: 700;
-}
-
 .tetris-stat {
     align-items: baseline;
     display: flex;
@@ -57,62 +54,37 @@
     font-variant-numeric: tabular-nums;
 }
 
-.tetris-next-piece {
-    aspect-ratio: 1;
-    background: var(--tetris-background);
-    border: 2px solid var(--tetris-board-border);
-    border-radius: 4px;
-    display: block;
-    height: auto;
-    width: 100%;
-}
-
 .tetris-board-stage {
     aspect-ratio: 1 / 2;
     width: 100%;
 }
 
-.tetris-page {
-    --tetris-board-width: min(300px, 80vw, calc((100vh - 150px) / 2));
-    --tetris-board-half-width: min(150px, 40vw, calc((100vh - 150px) / 4));
-    --tetris-sidebar-width: 120px;
-}
-
-.tetris-board {
+.tetris-board,
+.tetris-next-piece {
     background: var(--tetris-background);
     border: 2px solid var(--tetris-board-border);
     border-radius: 4px;
     display: block;
-    height: 100%;
     width: 100%;
 }
 
+.tetris-board {
+    height: 100%;
+}
+
+.tetris-next-piece {
+    aspect-ratio: 1;
+    height: auto;
+}
+
 html.layout-small .tetris-page {
-    display: flex;
     flex-direction: column;
     gap: 12px;
 }
 
 html.layout-small .tetris-sidebar {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
     left: auto;
     position: static;
     top: auto;
     width: var(--tetris-sidebar-width);
-}
-
-html.layout-small .tetris-next-section {
-    align-items: center;
-    display: flex;
-    justify-content: center;
-}
-
-.tetris-stat > span {
-    text-align: left;
-}
-
-.tetris-stat > strong {
-    text-align: right;
 }

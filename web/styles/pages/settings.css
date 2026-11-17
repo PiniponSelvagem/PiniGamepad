@@ -17,49 +17,29 @@
 
 .settings-section-label {
     background: var(--accent-1);
-    color: var(--text);
     font-size: 0.78rem;
     font-weight: 700;
     letter-spacing: 0.04em;
     margin: 0;
     padding: 12px 14px 10px;
-    text-transform: none;
 }
 
 .settings-row {
     align-items: center;
-    background: var(--accent-3);
-    border: 0;
     display: flex;
     gap: var(--spacing-small);
-    min-height: calc(var(--element-height) + var(--settings-row-padding-block) + var(--settings-row-padding-block));
+    justify-content: space-between;
+    min-height: calc(var(--element-height) + 2 * var(--settings-row-padding-block));
     padding: var(--settings-row-padding-block) 14px;
 }
 
 .settings-row .text-input {
     flex: 1;
     min-width: 0;
-}
-
-.settings-row .text-input,
-.settings-row .app-button {
     padding-block: 0;
 }
 
-.settings-row-toggle {
-    justify-content: space-between;
-}
-
-.settings-row-select {
-    justify-content: space-between;
-}
-
-.settings-row-led {
-    justify-content: space-between;
-}
-
 .settings-label {
-    color: var(--text);
     font-weight: 600;
 }
 
@@ -111,22 +91,7 @@
 }
 
 .led-color-value {
-    color: var(--text);
     font-variant-numeric: tabular-nums;
     min-width: 7ch;
-}
-
-.settings-row .app-button {
-    cursor: pointer;
-    pointer-events: auto;
-}
-
-.settings-row .app-button:hover {
-    background: var(--surface-light);
-}
-
-.settings-row .app-button:active {
-    background: var(--accent-0);
-    color: var(--background);
 }
 

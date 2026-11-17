@@ -4,11 +4,11 @@
     <div class="settings-page">
         <section class="settings-group">
             <h2 class="settings-section-label">{{language.settings.sections.controller}}</h2>
-            <div class="settings-row settings-row-select">
-                <span class="settings-label">{{language.settings.modelEmulation.label}}</span>
+            <div class="settings-row">
+                <span class="settings-label">{{language.settings.controllerModel.label}}</span>
                 <select class="settings-select" data-setting-key="controllerModel">
-                    {{#each settingsOptions.controllerModel}}
-                    <option value="{{value}}">{{label}}</option>
+                    {{#each settingValues.controllerModel}}
+                    <option value="{{this}}">{{lookup @root.language.settings.controllerModel.option this}}</option>
                     {{/each}}
                 </select>
             </div>
@@ -16,34 +16,34 @@
 
         <section class="settings-group">
             <h2 class="settings-section-label">{{language.settings.sections.system}}</h2>
-            <div class="settings-row settings-row-select">
+            <div class="settings-row">
                 <span class="settings-label">{{language.settings.sleepTimeout.label}}</span>
                 <select class="settings-select" data-setting-key="sleepTimeout">
-                    {{#each settingsOptions.sleepTimeout}}
-                    <option value="{{value}}">{{label}}</option>
+                    {{#each settingValues.sleepTimeout}}
+                    <option value="{{this}}">{{lookup @root.language.settings.sleepTimeout.option this}}</option>
                     {{/each}}
                 </select>
             </div>
-            <div class="settings-row settings-row-toggle">
-                <span class="settings-label">{{language.settings.alwaysSendInputState}}</span>
+            <div class="settings-row">
+                <span class="settings-label">{{language.settings.inputReportAlways}}</span>
                 <button class="toggle" type="button" data-pressed="false" data-setting-key="inputReportAlways">
                     <span class="toggle-thumb"></span>
                 </button>
             </div>
-            <div class="settings-row settings-row-led">
+            <div class="settings-row">
                 <span class="settings-label">{{language.settings.ledColor}}</span>
                 <div class="led-color-control">
                     <span class="led-color-value">#FF9F1C</span>
-                    <input class="led-color-input" id="led-color" type="color" value="#ff9f1c" data-setting-key="ledColor">
+                    <input class="led-color-input" type="color" value="#ff9f1c" data-setting-key="ledColor">
                 </div>
             </div>
         </section>
 
         <section class="settings-group">
             <h2 class="settings-section-label">{{language.settings.sections.developer}}</h2>
-            <div class="settings-row settings-row-toggle">
-                <span class="settings-label">{{language.settings.debug}}</span>
-                <button class="toggle debug-toggle" type="button" data-pressed="false" data-setting-key="debugMode" data-toggle-class="debug-mode">
+            <div class="settings-row">
+                <span class="settings-label">{{language.settings.debugMode}}</span>
+                <button class="toggle" type="button" data-pressed="{{debugMode}}" data-setting-key="debugMode">
                     <span class="toggle-thumb"></span>
                 </button>
             </div>

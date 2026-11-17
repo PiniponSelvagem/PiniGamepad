@@ -1,6 +1,6 @@
 const COLUMNS = 10
 const ROWS = 20
-const MAX_LEVEL = 10
+const MAX_LEVEL = 20
 const POINTS_PER_CLEARED_SQUARE = 1
 
 const PIECES = [
@@ -13,272 +13,157 @@ const PIECES = [
     { color: 'z', shape: [[1, 1, 0], [0, 1, 1], [0, 0, 0]] }
 ]
 
-/**
- * @brief   Create an empty game board.
- * @return  A ROWS-by-COLUMNS array whose cells are initially null.
- */
-function createBoard() {
-    return Array.from({ length: ROWS },
-        /** @brief Create an empty board row. @return Array of empty cells. */
-        () => Array(COLUMNS).fill(null))
-}
+const emptyRow = () => Array(COLUMNS).fill(null)
+const randomPiece = () => PIECES[Math.floor(Math.random() * PIECES.length)]
 
 /**
- * @brief   Copy a piece's shape matrix so its rows can be modified independently.
- * @param   shape Two-dimensional matrix describing occupied piece cells.
- * @return  A new matrix with copies of the original rows.
+ * @brief   Create a new game with an empty board and its first piece in play.
+ * @return  The game state: board (cells hold a piece color or null), active piece, queued nextPiece,
+ *          score, streak, lines, level, clearingRows (rows waiting for finishLineClear) and gameOver.
  */
-function copyShape(shape) {
-    return shape.map(
-        /** @brief Copy one shape row. @param row Original shape row. @return Copied row. */
-        row => [...row])
-}
-
-/**
- * @brief   Select a random piece definition from the available shapes.
- * @param   random Function returning a random number in the range [0, 1).
- * @return  The selected piece definition.
- */
-function choosePiece(random) {
-    return PIECES[Math.floor(random() * PIECES.length)]
-}
-
-/**
- * @brief   Create a new game and spawn its first piece.
- * @param   random Optional random-number function, useful for reproducible games and tests.
- * @return  A new game state with an empty board and a queued next piece.
- */
-function createGameState(random = Math.random) {
+function createGameState() {
     const state = {
-        board: createBoard(),
+        board: Array.from({ length: ROWS }, emptyRow),
         gameOver: false,
         piece: null,
         score: 0,
         streak: 0,
         lines: 0,
         level: 1,
-        nextPiece: choosePiece(random),
+        nextPiece: randomPiece(),
         clearingRows: null
     }
-    spawnPiece(state, random)
+    spawnPiece(state)
     return state
 }
 
 /**
- * @brief   Promote the queued piece and choose the next piece.
+ * @brief   Put the queued piece at the top of the board and queue a new one.
  * @param   state Game state to update.
- * @param   random Optional random-number function used to choose the next piece.
- * @note    Sets gameOver if the newly spawned piece collides with the board.
+ * @note    Sets gameOver if the new piece already collides with the board.
  */
-function spawnPiece(state, random = Math.random) {
-    const definition = state.nextPiece
-    state.nextPiece = choosePiece(random)
-    const shape = copyShape(definition.shape)
+function spawnPiece(state) {
+    const { color, shape } = state.nextPiece
+    state.nextPiece = randomPiece()
     state.piece = {
-        color: definition.color,
-        shape,
+        color,
+        shape: shape.map(row => [...row]),
         x: Math.floor((COLUMNS - shape[0].length) / 2),
         y: 0
     }
-
-    if (collides(state.board, state.piece)) {
-        state.gameOver = true
-    }
+    state.gameOver = collides(state.board, state.piece)
 }
 
 /**
- * @brief   Get the queued piece for the preview.
- * @param   state Current game state.
- * @return  The queued piece color identifier and a copy of its shape.
+ * @brief   Check whether a piece, optionally moved or reshaped, hits a wall, the floor or locked cells.
+ * @param   board Matrix of locked cells.
+ * @param   piece Piece to test.
+ * @param   dx Optional horizontal offset in cells.
+ * @param   dy Optional vertical offset in cells.
+ * @param   shape Optional shape matrix to test instead of the piece's own.
+ * @return  True if the tested position collides.
  */
-function getNextPiece(state) {
-    return {
-        color: state.nextPiece.color,
-        shape: copyShape(state.nextPiece.shape)
-    }
+function collides(board, piece, dx = 0, dy = 0, shape = piece.shape) {
+    return shape.some((cells, row) => cells.some((filled, column) => {
+        const x = piece.x + column + dx
+        const y = piece.y + row + dy
+        return filled && (x < 0 || x >= COLUMNS || y >= ROWS || board[y][x])
+    }))
 }
 
 /**
- * @brief   Check whether a piece position or shape intersects the board or its boundaries.
- * @param   board Current matrix of locked cells.
- * @param   piece Piece whose position is being tested.
- * @param   offsetX Optional horizontal offset in cells.
- * @param   offsetY Optional vertical offset in cells.
- * @param   shape Optional shape matrix to test instead of the current shape.
- * @return  True if the tested position collides; otherwise false.
- */
-function collides(board, piece, offsetX = 0, offsetY = 0, shape = piece.shape) {
-    for (let row = 0; row < shape.length; row += 1) {
-        for (let column = 0; column < shape[row].length; column += 1) {
-            if (!shape[row][column]) continue
-
-            const x = piece.x + column + offsetX
-            const y = piece.y + row + offsetY
-            if (x < 0 || x >= COLUMNS || y >= ROWS) return true
-            if (y >= 0 && board[y][x]) return true
-        }
-    }
-    return false
-}
-
-/**
- * @brief   Find the landing row for the active piece without moving it.
- * @param   state Game state containing an active piece.
- * @return  The piece's projected vertical position in board cells.
+ * @brief   Find the row where the active piece would land, without moving it.
+ * @param   state Game state with an active piece.
+ * @return  The landing row of the piece's origin.
  */
 function getGhostY(state) {
-    let offsetY = 0
-    while (!collides(state.board, state.piece, 0, offsetY + 1)) {
-        offsetY += 1
-    }
-    return state.piece.y + offsetY
+    let dy = 0
+    while (!collides(state.board, state.piece, 0, dy + 1)) dy += 1
+    return state.piece.y + dy
 }
 
 /**
- * @brief   Lock the active piece, update statistics, and detect completed lines.
+ * @brief   Write the active piece into the board, score completed rows and spawn the next piece.
  * @param   state Game state to update.
- * @param   random Random-number function used when spawning the next piece.
- * @note    Completed rows remain on the board until finishLineClear is called after the animation.
+ * @note    Completed rows stay on the board in clearingRows until finishLineClear is called.
  */
-function lockPiece(state, random) {
+function lockPiece(state) {
     const { piece, board } = state
-    for (let row = 0; row < piece.shape.length; row += 1) {
-        for (let column = 0; column < piece.shape[row].length; column += 1) {
-            if (!piece.shape[row][column]) continue
+    piece.shape.forEach((cells, row) => cells.forEach((filled, column) => {
+        if (filled) board[piece.y + row][piece.x + column] = piece.color
+    }))
 
-            const y = piece.y + row
-            const x = piece.x + column
-            if (y < 0) {
-                state.gameOver = true
-                return
-            }
-            board[y][x] = piece.color
-        }
-    }
-
-    const clearedRows = board
-        .map(
-            /** @brief Mark full rows by index. @param row Board row. @param index Row index. @return Index of a full row, or -1. */
-            (row, index) => row.every(Boolean) ? index : -1)
-        .filter(
-            /** @brief Keep marked row indices. @param index Marked index or -1. @return True for a cleared row. */
-            index => index >= 0)
-    state.lines += clearedRows.length
+    const fullRows = board.flatMap((row, y) => (row.every(Boolean) ? [y] : []))
+    state.lines += fullRows.length
     state.level = Math.min(MAX_LEVEL, Math.floor(state.lines / 10) + 1)
-    if (clearedRows.length === 0) {
+    if (!fullRows.length) {
         state.streak = 0
-        spawnPiece(state, random)
-    } else {
-        for (let line = 0; line < clearedRows.length; line += 1) {
-            state.streak += 1
-            state.score += COLUMNS * POINTS_PER_CLEARED_SQUARE * state.streak
-        }
-        state.clearingRows = clearedRows
-        state.piece = null
+        spawnPiece(state)
+        return
     }
+
+    // Each consecutive row is worth more: the streak multiplier grows by one per row.
+    fullRows.forEach(() => {
+        state.streak += 1
+        state.score += COLUMNS * POINTS_PER_CLEARED_SQUARE * state.streak
+    })
+    state.clearingRows = fullRows
+    state.piece = null
 }
 
 /**
- * @brief   Remove pending completed rows, drop the remaining rows, and spawn the next piece.
- * @param   state Game state containing the rows waiting to be cleared.
- * @param   random Optional random-number function used for the next piece.
+ * @brief   Remove the rows waiting in clearingRows, drop the rows above them and spawn the next piece.
+ * @param   state Game state to update.
  * @note    Does nothing when no line clear is pending.
  */
-function finishLineClear(state, random = Math.random) {
+function finishLineClear(state) {
     if (!state.clearingRows) return
 
-    const clearedRows = new Set(state.clearingRows)
-    const remainingRows = state.board.filter(
-        /** @brief Retain rows not being cleared. @param _ Board row; unused. @param index Row index. @return True if the row remains. */
-        (_, index) => !clearedRows.has(index))
-    state.board = [
-        ...Array.from({ length: clearedRows.size },
-            /** @brief Create an empty replacement row. @return Array of empty cells. */
-            () => Array(COLUMNS).fill(null)),
-        ...remainingRows
-    ]
+    const remaining = state.board.filter((_, y) => !state.clearingRows.includes(y))
+    state.board = [...Array.from({ length: ROWS - remaining.length }, emptyRow), ...remaining]
     state.clearingRows = null
-    spawnPiece(state, random)
+    spawnPiece(state)
 }
 
 /**
- * @brief   Attempt to move the active piece by the given offsets.
+ * @brief   Move the active piece by the given offsets.
  * @param   state Game state to update.
- * @param   offsetX Horizontal displacement in board cells.
- * @param   offsetY Vertical displacement in board cells.
- * @param   random Optional random-number function used when a piece locks.
- * @return  True if the piece moved; false if movement was blocked or unavailable.
- * @note    A blocked downward move locks the piece; blocked sideways movement does not.
+ * @param   dx Horizontal offset in cells.
+ * @param   dy Vertical offset in cells.
+ * @return  True if the piece moved.
+ * @note    A blocked downward move locks the piece; a blocked sideways move does nothing.
  */
-function movePiece(state, offsetX, offsetY, random = Math.random) {
+function movePiece(state, dx, dy) {
     if (state.gameOver || state.clearingRows || !state.piece) return false
-    if (!collides(state.board, state.piece, offsetX, offsetY)) {
-        state.piece.x += offsetX
-        state.piece.y += offsetY
-        return true
+    if (collides(state.board, state.piece, dx, dy)) {
+        if (dy > 0) lockPiece(state)
+        return false
     }
-
-    if (offsetY > 0) lockPiece(state, random)
-    return false
+    state.piece.x += dx
+    state.piece.y += dy
+    return true
 }
 
 /**
- * @brief   Drop the active piece until it locks.
+ * @brief   Drop the active piece straight down until it locks.
  * @param   state Game state to update.
- * @param   random Optional random-number function used when the piece locks.
- * @return  The number of rows the piece moved before locking.
  */
-function hardDrop(state, random = Math.random) {
-    let distance = 0
-    while (!state.gameOver && !state.clearingRows && state.piece && movePiece(state, 0, 1, random)) {
-        distance += 1
-    }
-    return distance
+function hardDrop(state) {
+    while (movePiece(state, 0, 1)) continue
 }
 
 /**
- * @brief   Rotate a shape matrix clockwise.
- * @param   shape Two-dimensional piece shape to rotate.
- * @return  A new rotated shape matrix.
- */
-function rotateShape(shape) {
-    const height = shape.length
-    const width = shape[0].length
-    return Array.from({ length: width },
-        /** @brief Create one rotated row. @param _ Unused value. @param row Rotated row index. @return The rotated row. */
-        (_, row) => (
-        Array.from({ length: height },
-            /** @brief Select one rotated cell. @param _ Unused value. @param column Rotated column index. @return Original cell value. */
-            (_, column) => shape[height - 1 - column][row])
-    ))
-}
-
-/**
- * @brief   Rotate the active piece clockwise, trying horizontal offsets if necessary.
+ * @brief   Rotate the active piece clockwise, shifting it sideways by up to two cells if needed.
  * @param   state Game state to update.
- * @return  True if a valid rotation was applied; otherwise false.
+ * @note    Does nothing if no shifted position fits.
  */
 function rotatePiece(state) {
-    if (state.gameOver || state.clearingRows || !state.piece) return false
-    const rotatedShape = rotateShape(state.piece.shape)
-    for (const offsetX of [0, -1, 1, -2, 2]) {
-        if (!collides(state.board, state.piece, offsetX, 0, rotatedShape)) {
-            state.piece.shape = rotatedShape
-            state.piece.x += offsetX
-            return true
-        }
-    }
-    return false
+    const { piece } = state
+    if (state.gameOver || state.clearingRows || !piece) return
+
+    const shape = piece.shape[0].map((_, x) => piece.shape.map(row => row[x]).reverse())
+    const dx = [0, -1, 1, -2, 2].find(offset => !collides(state.board, piece, offset, 0, shape)) // try each offset until a non-colliding position is found
+    if (dx !== undefined) Object.assign(piece, { shape, x: piece.x + dx })
 }
 
-/**
- * @brief   Advance gravity by attempting to move the active piece down one row.
- * @param   state Game state to update.
- * @param   random Optional random-number function used when the piece locks.
- * @return  True if the piece moved down; otherwise false.
- */
-function tick(state, random = Math.random) {
-    return movePiece(state, 0, 1, random)
-}
-
-module.exports = { COLUMNS, MAX_LEVEL, ROWS, createGameState, finishLineClear, getGhostY, getNextPiece, hardDrop, movePiece, rotatePiece, tick }
+module.exports = { createGameState, finishLineClear, getGhostY, hardDrop, movePiece, rotatePiece }

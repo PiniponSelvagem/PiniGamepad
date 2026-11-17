@@ -1,69 +1,78 @@
 const engine = require('./engine')
 
 const CELL_SIZE = 30
+const PREVIEW_CELL_SIZE = 24
 const BASE_GRAVITY_INTERVAL = 600
 const LEVEL_SPEED_STEP = 0.125
 const MIN_GRAVITY_INTERVAL = 60
 const LINE_CLEAR_DURATION = 400
 const LINE_CLEAR_BLINKS = 3
-const PREVIEW_CELL_SIZE = 24
+
+// Keys that act on the active piece.
+const MOVES = {
+    ArrowLeft: state => engine.movePiece(state, -1, 0),
+    ArrowRight: state => engine.movePiece(state, 1, 0),
+    ArrowDown: state => engine.movePiece(state, 0, 1),
+    ArrowUp: engine.rotatePiece,
+    Space: engine.hardDrop
+}
+// Keys the game uses; their default browser action (such as scrolling) is cancelled.
+const HANDLED_KEYS = [...Object.keys(MOVES), 'KeyR', 'KeyY', 'KeyN']
 
 /**
- * @brief   Create a Tetris game controller with its own state, rendering, and keyboard handlers.
- * @param   language Tetris display strings from the frontend language resource.
- * @return  An object exposing mount(container) and pause() for the page lifecycle.
- * @note    The game state survives navigation; pause() stops its timers and removes its key handler.
+ * @brief   Call a function for every non-empty cell of a matrix.
+ * @param   matrix Rows of cells; empty cells are 0 or null.
+ * @param   callback Called with the cell's column, row and value.
+ */
+function eachCell(matrix, callback) {
+    matrix.forEach((cells, y) => cells.forEach((value, x) => value && callback(x, y, value)))
+}
+
+/**
+ * @brief   Fill one cell of a canvas grid, leaving a one pixel gap around it.
+ * @param   ctx Canvas context to draw on.
+ * @param   size Cell size in canvas pixels.
+ * @param   x Column; may be fractional.
+ * @param   y Row; may be fractional.
+ * @param   color Fill color.
+ */
+function fillCell(ctx, size, x, y, color) {
+    ctx.fillStyle = color
+    ctx.fillRect(x * size + 1, y * size + 1, size - 2, size - 2)
+}
+
+/**
+ * @brief   Create a Tetris game with its own state, rendering and keyboard handling.
+ * @param   language Tetris texts from the frontend language file.
+ * @return  An object with mount(container) and pause() for the page lifecycle.
+ * @note    The game keeps its state between visits; leaving the page pauses it.
+ *          Colors and opacities are read from the page's --tetris-* CSS variables.
  */
 function createTetrisGame(language) {
     let state = engine.createGameState()
-    let root = null
-    let canvas = null
-    let context = null
-    let nextCanvas = null
-    let nextContext = null
-    let scoreElement = null
-    let levelElement = null
-    let linesElement = null
-    let gravityTimer = null
-    let lineClearFrame = null
-    let lineClearElapsed = 0
-    let lineClearStartedAt = null
-    let lineClearAnimationStarted = false
-    let active = false
     let paused = false
-    let restartConfirmation = false
-    let keyHandlerAttached = false
+    let confirmingRestart = false
+    let gravityTimer = null
+    let clearFrame = null // pending animation frame of a line clear
+    let clearElapsed = 0 // milliseconds of the line-clear animation already played
+    let clearStartedAt = null // frame time at which the current run of the animation started
+    let active = false // true while the page is mounted
+    let canvas, context, nextContext, style, hud // elements of the mounted page
+
+    const css = name => style.getPropertyValue(`--tetris-${name}`).trim()
 
     /**
-     * @brief   Read a Tetris CSS custom property from the mounted game page.
-     * @param   name Property suffix after --tetris-.
-     * @return  The trimmed computed property value.
-     */
-    function getCssValue(name) {
-        return window.getComputedStyle(root).getPropertyValue(`--tetris-${name}`).trim()
-    }
-
-    /**
-     * @brief   Update the displayed score, level, and cleared-line count from game state.
-     */
-    function updateHud() {
-        if (scoreElement) scoreElement.textContent = String(state.score)
-        if (levelElement) levelElement.textContent = String(state.level)
-        if (linesElement) linesElement.textContent = String(state.lines)
-    }
-
-    /**
-     * @brief   Draw a dimmed board overlay with centered text.
-     * @param   title Main overlay message.
-     * @param   subtitle Optional secondary message.
-     * @param   titleSize Optional title font size in canvas pixels.
+     * @brief   Draw a dimmed overlay over the board with centered text.
+     * @param   title Main message.
+     * @param   subtitle Optional second line.
+     * @param   titleSize Optional size of the main message in canvas pixels.
      */
     function drawOverlay(title, subtitle = '', titleSize = 27) {
-        context.fillStyle = getCssValue('overlay')
-        context.globalAlpha = Number(getCssValue('overlay-opacity'))
+        context.fillStyle = css('overlay')
+        context.globalAlpha = Number(css('overlay-opacity'))
         context.fillRect(0, 0, canvas.width, canvas.height)
         context.globalAlpha = 1
-        context.fillStyle = getCssValue('text')
+        context.fillStyle = css('text')
         context.textAlign = 'center'
         context.font = `700 ${titleSize}px system-ui, sans-serif`
         context.fillText(title, canvas.width / 2, canvas.height / 2 - 12)
@@ -74,350 +83,223 @@ function createTetrisGame(language) {
     }
 
     /**
-     * @brief   Render the queued piece in the preview canvas using its CSS color.
+     * @brief   Draw the queued piece, centered, in the preview canvas.
      */
     function drawNextPiece() {
-        if (!nextContext || !nextCanvas) return
-
-        nextContext.clearRect(0, 0, nextCanvas.width, nextCanvas.height)
-        const piece = engine.getNextPiece(state)
-        const width = piece.shape[0].length * PREVIEW_CELL_SIZE
-        const height = piece.shape.length * PREVIEW_CELL_SIZE
-        const left = (nextCanvas.width - width) / 2
-        const top = (nextCanvas.height - height) / 2
-        nextContext.fillStyle = getCssValue(`piece-${piece.color}`)
-
-        piece.shape.forEach(
-            /** @brief Render a preview shape row. @param row Shape row. @param y Row index. */
-            (row, y) => {
-            row.forEach(
-                /** @brief Draw a filled preview cell. @param filled Cell occupancy. @param x Column index. */
-                (filled, x) => {
-                if (!filled) return
-                nextContext.fillRect(
-                    left + x * PREVIEW_CELL_SIZE + 1,
-                    top + y * PREVIEW_CELL_SIZE + 1,
-                    PREVIEW_CELL_SIZE - 2,
-                    PREVIEW_CELL_SIZE - 2
-                )
-            })
-        })
+        const { color, shape } = state.nextPiece
+        const { width, height } = nextContext.canvas
+        const cells = width / PREVIEW_CELL_SIZE
+        nextContext.clearRect(0, 0, width, height)
+        eachCell(shape, (x, y) => fillCell(
+            nextContext,
+            PREVIEW_CELL_SIZE,
+            x + (cells - shape[0].length) / 2,
+            y + (cells - shape.length) / 2,
+            css(`piece-${color}`)
+        ))
     }
 
     /**
-     * @brief   Draw one occupied cell on the game board.
-     * @param   column Horizontal board position in cells.
-     * @param   row Vertical board position in cells; negative rows are skipped.
-     * @param   color Canvas fill color for the cell.
+     * @brief   Draw the whole game: statistics, preview, board, ghost and active piece, line-clear flash and overlays.
+     * @param   progress Optional progress of the line-clear animation, from 0 to 1.
+     * @note    Completed rows flash white while their line-clear animation plays.
      */
-    function drawCell(column, row, color) {
-        if (row < 0) return
-        context.fillStyle = color
-        context.fillRect(
-            column * CELL_SIZE + 1,
-            row * CELL_SIZE + 1,
-            CELL_SIZE - 2,
-            CELL_SIZE - 2
-        )
-    }
-
-    /**
-     * @brief   Render the board, active and ghost pieces, statistics, and current overlay.
-     * @param   lineClearProgress Optional animation progress from 0 to 1.
-     * @note    Completed rows blink together until the line-clear animation finishes.
-     */
-    function draw(lineClearProgress = lineClearElapsed / LINE_CLEAR_DURATION) {
-        if (!context) return
-        updateHud()
+    function draw(progress = clearElapsed / LINE_CLEAR_DURATION) {
+        hud.forEach(([name, element]) => { element.textContent = state[name] })
         drawNextPiece()
 
-        context.fillStyle = getCssValue('background')
+        context.fillStyle = css('background')
         context.fillRect(0, 0, canvas.width, canvas.height)
+        eachCell(state.board, (x, y, color) => fillCell(context, CELL_SIZE, x, y, css(`piece-${color}`)))
 
-        state.board.forEach(
-            /** @brief Render one row of locked board cells. @param row Board row. @param y Row index. */
-            (row, y) => {
-            row.forEach(
-                /** @brief Draw a locked cell when occupied. @param color Piece color key or null. @param x Column index. */
-                (color, x) => {
-                if (color) drawCell(x, y, getCssValue(`piece-${color}`))
-            })
-        })
-
-        if (!state.gameOver && state.piece) {
+        const { piece } = state
+        if (piece && !state.gameOver) {
             const ghostY = engine.getGhostY(state)
-            context.globalAlpha = Number(getCssValue('ghost-opacity'))
-            state.piece.shape.forEach(
-                /** @brief Render one row of the ghost piece. @param row Shape row. @param y Row index. */
-                (row, y) => {
-                row.forEach(
-                    /** @brief Draw a filled ghost cell. @param filled Cell occupancy. @param x Column index. */
-                    (filled, x) => {
-                    if (filled) drawCell(state.piece.x + x, ghostY + y, getCssValue('ghost'))
-                })
-            })
+            context.globalAlpha = Number(css('ghost-opacity'))
+            eachCell(piece.shape, (x, y) => fillCell(context, CELL_SIZE, piece.x + x, ghostY + y, css('ghost')))
             context.globalAlpha = 1
-
-            state.piece.shape.forEach(
-                /** @brief Render one row of the active piece. @param row Shape row. @param y Row index. */
-                (row, y) => {
-                row.forEach(
-                    /** @brief Draw a filled active-piece cell. @param filled Cell occupancy. @param x Column index. */
-                    (filled, x) => {
-                    if (filled) {
-                        drawCell(
-                            state.piece.x + x,
-                            state.piece.y + y,
-                            getCssValue(`piece-${state.piece.color}`)
-                        )
-                    }
-                })
-            })
+            eachCell(piece.shape, (x, y) => fillCell(context, CELL_SIZE, piece.x + x, piece.y + y, css(`piece-${piece.color}`)))
         }
 
-        if (state.clearingRows) {
-            const blinkPhase = Math.min(
-                Math.floor(lineClearProgress * LINE_CLEAR_BLINKS * 2),
-                LINE_CLEAR_BLINKS * 2 - 1
-            )
-            if (blinkPhase % 2 === 0) {
-                context.fillStyle = getCssValue('clear')
-                state.clearingRows.forEach(
-                    /** @brief Draw a white flash over a completed row. @param row Board row index. */
-                    row => {
-                    context.fillRect(0, row * CELL_SIZE, canvas.width, CELL_SIZE)
-                })
-            }
+        const blink = Math.min(Math.floor(progress * LINE_CLEAR_BLINKS * 2), LINE_CLEAR_BLINKS * 2 - 1)
+        if (state.clearingRows && blink % 2 === 0) {
+            context.fillStyle = css('clear')
+            state.clearingRows.forEach(row => context.fillRect(0, row * CELL_SIZE, canvas.width, CELL_SIZE))
         }
 
-        if (restartConfirmation) {
+        if (confirmingRestart) {
             drawOverlay(language.restartConfirmation.prompt, language.restartConfirmation.options, 17)
-        } else if (paused && !state.gameOver) {
-            drawOverlay(language.paused)
         } else if (state.gameOver) {
             drawOverlay(language.gameOver.title, language.gameOver.restart)
+        } else if (paused) {
+            drawOverlay(language.paused)
         }
     }
 
     /**
-     * @brief   Stop the gravity interval if one is running.
+     * @brief   Stop the gravity timer.
      */
     function stopGravity() {
-        if (gravityTimer === null) return
-        window.clearInterval(gravityTimer)
+        clearInterval(gravityTimer)
         gravityTimer = null
     }
 
     /**
-     * @brief   Cancel the scheduled line-clear frame while preserving elapsed animation time.
+     * @brief   Cancel the pending line-clear frame, keeping the time already played.
      */
     function stopLineClearAnimation() {
-        if (lineClearFrame !== null) {
-            window.cancelAnimationFrame(lineClearFrame)
-            lineClearFrame = null
-        }
-        lineClearStartedAt = null
+        cancelAnimationFrame(clearFrame)
+        clearFrame = null
+        clearStartedAt = null
     }
 
     /**
-     * @brief   Advance the line-clear animation and complete the clear when it finishes.
-     * @param   timestamp Animation-frame timestamp in milliseconds.
-     * @note    Gravity restarts after the completed rows are removed.
+     * @brief   Play one frame of the line-clear animation and finish the clear when its time is up.
+     * @param   now Animation-frame time in milliseconds.
      */
-    function animateLineClear(timestamp) {
-        lineClearFrame = null
+    function animateLineClear(now) {
+        clearFrame = null
         if (!active || paused || !state.clearingRows) return
 
-        if (lineClearStartedAt === null) {
-            lineClearStartedAt = timestamp - lineClearElapsed
-        }
-        lineClearElapsed = Math.min(timestamp - lineClearStartedAt, LINE_CLEAR_DURATION)
-        const progress = lineClearElapsed / LINE_CLEAR_DURATION
-        draw(progress)
-
-        if (progress >= 1) {
-            lineClearElapsed = 0
-            lineClearStartedAt = null
-            lineClearAnimationStarted = false
-            engine.finishLineClear(state)
+        clearStartedAt ??= now - clearElapsed
+        clearElapsed = Math.min(now - clearStartedAt, LINE_CLEAR_DURATION)
+        if (clearElapsed < LINE_CLEAR_DURATION) {
             draw()
-            startGravity()
+            clearFrame = requestAnimationFrame(animateLineClear)
             return
         }
 
-        lineClearFrame = window.requestAnimationFrame(animateLineClear)
-    }
-
-    /**
-     * @brief   Schedule a pending line-clear animation when the game is active and unpaused.
-     */
-    function startLineClearAnimation() {
-        if (!active || paused || !state.clearingRows || lineClearFrame !== null) return
-        lineClearAnimationStarted = true
-        lineClearFrame = window.requestAnimationFrame(animateLineClear)
-    }
-
-    /**
-     * @brief   Redraw after a piece update or start a newly pending line-clear animation.
-     * @note    An animation already in progress is not restarted by repeated input.
-     */
-    function handlePieceUpdate() {
-        if (state.clearingRows) {
-            stopGravity()
-            if (!lineClearAnimationStarted) {
-                lineClearElapsed = 0
-                lineClearStartedAt = null
-                draw(0)
-                startLineClearAnimation()
-            }
-            return
-        }
-        lineClearAnimationStarted = false
-        draw()
-    }
-
-    /**
-     * @brief   Start the level-dependent gravity interval when gameplay can advance.
-     * @note    Does nothing while paused, inactive, game over, or clearing rows.
-     */
-    function startGravity() {
-        if (!active || paused || state.gameOver || state.clearingRows || gravityTimer !== null) return
-        const gravityInterval = Math.max(
-            MIN_GRAVITY_INTERVAL,
-            BASE_GRAVITY_INTERVAL / (1 + LEVEL_SPEED_STEP * (state.level - 1))
-        )
-        gravityTimer = window.setInterval(
-            /** @brief Advance gravity, update the display, and stop the timer on game over. */
-            () => {
-            engine.tick(state)
-            handlePieceUpdate()
-            if (state.gameOver) stopGravity()
-        }, gravityInterval)
-    }
-
-    /**
-     * @brief   Reset the board, statistics, pause state, and animations for a new game.
-     */
-    function restartGame() {
-        stopGravity()
-        stopLineClearAnimation()
-        state = engine.createGameState()
-        paused = false
-        restartConfirmation = false
-        lineClearElapsed = 0
-        lineClearStartedAt = null
-        lineClearAnimationStarted = false
+        clearElapsed = 0
+        clearStartedAt = null
+        engine.finishLineClear(state)
         draw()
         startGravity()
     }
 
     /**
-     * @brief   Handle movement, rotation, hard drop, pause, and restart confirmation keys.
-     * @param   event Keyboard event received while the Tetris page is mounted.
-     * @note    Confirmation and game-over input take precedence over normal movement.
+     * @brief   Start, or continue, the line-clear animation if one is pending and the game is running.
+     * @note    Does nothing if the animation is already running, so input cannot restart it.
      */
-    function handleKeyDown(event) {
-        if (!active) return
-        if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space', 'KeyR', 'KeyY', 'KeyN'].includes(event.code)) {
-            event.preventDefault()
+    function startLineClearAnimation() {
+        if (active && !paused && state.clearingRows && clearFrame === null) {
+            clearFrame = requestAnimationFrame(animateLineClear)
         }
-
-        if (restartConfirmation) {
-            if (event.code === 'KeyY') {
-                restartGame()
-            } else if (event.code === 'KeyN') {
-                restartConfirmation = false
-                draw()
-                if (!paused) {
-                    startGravity()
-                    startLineClearAnimation()
-                }
-            }
-            return
-        }
-
-        if (event.code === 'KeyR') {
-            restartConfirmation = true
-            stopGravity()
-            stopLineClearAnimation()
-            draw()
-            return
-        }
-
-        if (state.gameOver) {
-            if (event.code === 'Space') {
-                restartGame()
-            }
-            return
-        }
-
-        if (event.code === 'KeyP') {
-            paused = !paused
-            if (paused) {
-                stopGravity()
-                stopLineClearAnimation()
-            } else {
-                startGravity()
-                startLineClearAnimation()
-            }
-            draw()
-            return
-        }
-        if (paused) return
-
-        if (event.code === 'ArrowLeft') engine.movePiece(state, -1, 0)
-        else if (event.code === 'ArrowRight') engine.movePiece(state, 1, 0)
-        else if (event.code === 'ArrowDown') engine.movePiece(state, 0, 1)
-        else if (event.code === 'ArrowUp') engine.rotatePiece(state)
-        else if (event.code === 'Space') engine.hardDrop(state)
-        else return
-
-        handlePieceUpdate()
     }
 
     /**
-     * @brief   Attach the game controller to a rendered Tetris page and draw its current state.
-     * @param   container Page element containing the board, preview, and statistics.
-     * @note    A game paused on navigation remains paused until the player resumes it.
+     * @brief   Start the gravity timer; each level makes it faster.
+     * @note    Does nothing while paused, over, clearing lines or already running.
      */
-    function mount(container) {
-        root = container
-        canvas = root.querySelector('.tetris-board')
-        context = canvas.getContext('2d')
-        nextCanvas = root.querySelector('.tetris-next-piece')
-        nextContext = nextCanvas.getContext('2d')
-        scoreElement = root.querySelector('.tetris-score')
-        levelElement = root.querySelector('.tetris-level')
-        linesElement = root.querySelector('.tetris-lines')
-        active = true
-        window.addEventListener('keydown', handleKeyDown)
-        keyHandlerAttached = true
-        draw()
+    function startGravity() {
+        if (!active || paused || state.gameOver || state.clearingRows || gravityTimer !== null) return
+
+        const interval = Math.max(MIN_GRAVITY_INTERVAL, BASE_GRAVITY_INTERVAL / (1 + LEVEL_SPEED_STEP * (state.level - 1)))
+        gravityTimer = setInterval(() => {
+            engine.movePiece(state, 0, 1)
+            update()
+            if (state.gameOver) stopGravity()
+        }, interval)
+    }
+
+    /**
+     * @brief   Stop everything that advances the game over time.
+     */
+    function suspend() {
+        stopGravity()
+        stopLineClearAnimation()
+    }
+
+    /**
+     * @brief   Continue whatever advances the game over time, as far as the game state allows.
+     */
+    function resume() {
         startGravity()
         startLineClearAnimation()
     }
 
     /**
-     * @brief   Pause gameplay and detach the controller from the current page.
-     * @note    The board and animation progress are retained for the next mount.
+     * @brief   Redraw after the game changed and start the line-clear animation if rows were completed.
+     */
+    function update() {
+        if (state.clearingRows) {
+            stopGravity()
+            startLineClearAnimation()
+        }
+        draw()
+    }
+
+    /**
+     * @brief   Start a new game.
+     */
+    function restartGame() {
+        suspend()
+        state = engine.createGameState()
+        paused = false
+        confirmingRestart = false
+        clearElapsed = 0
+        draw()
+        startGravity()
+    }
+
+    /**
+     * @brief   Handle the game keys: arrows, space, P (pause), R (restart) and Y / N (confirm restart).
+     * @param   event Keyboard event.
+     * @note    While confirming a restart, only Y and N are used; after game over, only Space (new game).
+     */
+    function onKeyDown(event) {
+        const { code } = event
+        if (HANDLED_KEYS.includes(code)) event.preventDefault()
+
+        if (confirmingRestart) {
+            if (code === 'KeyY') {
+                restartGame()
+            } else if (code === 'KeyN') {
+                confirmingRestart = false
+                draw()
+                if (!paused) resume()
+            }
+        } else if (code === 'KeyR') {
+            confirmingRestart = true
+            suspend()
+            draw()
+        } else if (state.gameOver) {
+            if (code === 'Space') restartGame()
+        } else if (code === 'KeyP') {
+            paused = !paused
+            if (paused) suspend()
+            else resume()
+            draw()
+        } else if (!paused && code in MOVES) {
+            MOVES[code](state)
+            update()
+        }
+    }
+
+    /**
+     * @brief   Attach the game to a rendered Tetris page, draw it and let it run.
+     * @param   container Page element holding the board, preview and statistics.
+     * @note    A game paused when its page was left stays paused until P is pressed.
+     */
+    function mount(container) {
+        canvas = container.querySelector('.tetris-board')
+        context = canvas.getContext('2d')
+        nextContext = container.querySelector('.tetris-next-piece').getContext('2d')
+        style = getComputedStyle(container)
+        hud = ['score', 'level', 'lines'].map(name => [name, container.querySelector(`.tetris-${name}`)])
+        active = true
+        window.addEventListener('keydown', onKeyDown)
+        draw()
+        resume()
+    }
+
+    /**
+     * @brief   Pause the game and stop listening to the keyboard.
      */
     function pause() {
         active = false
         paused = true
-        stopGravity()
-        stopLineClearAnimation()
-        if (keyHandlerAttached) {
-            window.removeEventListener('keydown', handleKeyDown)
-            keyHandlerAttached = false
-        }
-        root = null
-        canvas = null
-        context = null
-        nextCanvas = null
-        nextContext = null
-        scoreElement = null
-        levelElement = null
-        linesElement = null
+        suspend()
+        window.removeEventListener('keydown', onKeyDown)
     }
 
     return { mount, pause }
